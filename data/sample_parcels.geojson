@@ -1,0 +1,38 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "PARCEL_ID": "P-88210",
+        "ZONING": "Commercial Heavy",
+        "OWNER": "Sargpoint Realty Inc",
+        "AREA_SQM": 14250.5
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-113.498, 53.545],
+            [-113.490, 53.545],
+            [-113.490, 53.538],
+            [-113.498, 53.538],
+            [-113.498, 53.545]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "STATION_ID": "STN-04",
+        "NAME": "North Substation",
+        "STATUS": "Operational"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-113.494, 53.5415]
+      }
+    }
+  ]
+}

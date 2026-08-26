@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Sargpoint GIS Test" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>River Valley Trail Sample GPX</name>
+  </metadata>
+  <wpt lat="53.5461" lon="-113.4938">
+    <name>North Saskatchewan Viewpoint</name>
+    <ele>672.0</ele>
+    <desc>Overlook point in Edmonton</desc>
+  </wpt>
+  <trk>
+    <name>Edmonton River Valley Trail</name>
+    <trkseg>
+      <trkpt lat="53.5400" lon="-113.5000"><ele>665</ele></trkpt>
+      <trkpt lat="53.5430" lon="-113.4950"><ele>668</ele></trkpt>
+      <trkpt lat="53.5460" lon="-113.4900"><ele>670</ele></trkpt>
+      <trkpt lat="53.5490" lon="-113.4850"><ele>672</ele></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

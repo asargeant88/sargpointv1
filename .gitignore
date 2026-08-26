@@ -1,0 +1,6 @@
+uploads/
+config.php
+*.sqlite
+*.db
+data/*.log
+.env
