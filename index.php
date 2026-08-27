@@ -12,7 +12,7 @@ $currentUser = getCurrentUser();
     <meta name="description" content="SaaS GIS Data Workspace & Projection Converter for ArcGIS, QGIS, Tableau, AutoCAD Civil 3D, and Global Mapper.">
     
     <!-- Stylesheets & Leaflet -->
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=2.5.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <!-- JS Dependencies (Leaflet, Proj4, JSZip, sql.js WebAssembly, hyparquet Parquet Engine) -->
@@ -984,7 +984,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=2.4.0"></script>
-    <script src="js/app.js?v=2.4.0"></script>
+    <script src="js/converter.js?v=2.5.0"></script>
+    <script src="js/app.js?v=2.5.0"></script>
 </body>
 </html>
