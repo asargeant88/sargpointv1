@@ -9,7 +9,33 @@ $currentUser = getCurrentUser();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sargpoint GIS Workspace & Projection Converter</title>
-    <meta name="description" content="SaaS GIS Data Workspace & Projection Converter for ArcGIS, QGIS, Tableau, AutoCAD Civil 3D, and Global Mapper.">
+    <meta name="description" content="SaaS GIS Data Workspace & Projection Converter for Shapefile, GeoJSON, KMZ, KML, GPX, DXF, SpatiaLite, and GeoParquet. Convert EPSG projections, fetch 3D DEM elevations, and query Legal Land Descriptions (DLS).">
+    <meta name="keywords" content="GIS converter, projection converter, EPSG lookup, Shapefile to GeoJSON, KML to KMZ, GPX to CSV, DXF 3D converter, GeoParquet, SpatiaLite, Legal Land Description DLS, Open-Elevation DEM, NAD83, WGS84, UTM Zone 11N, UTM Zone 12N, UTM Zone 13N, Alberta 10TM, EPSG 3400, EPSG 4326, EPSG 3857, EPSG 26911, EPSG 26912">
+    <meta name="author" content="Sargpoint GIS Systems">
+
+    <!-- Open Graph & Social Cards -->
+    <meta property="og:title" content="Sargpoint GIS Workspace & Projection Converter">
+    <meta property="og:description" content="Online GIS data converter, coordinate projection transformer, and 3D elevation spreadsheet tool.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sargpoint.com/">
+    
+    <!-- JSON-LD Structured Search Engine Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Sargpoint GIS Workspace & Projection Converter",
+      "operatingSystem": "Web Browser",
+      "applicationCategory": "DeveloperApplication",
+      "offers": {
+        "@type": "AggregateOffer",
+        "priceCurrency": "USD",
+        "lowPrice": "0",
+        "highPrice": "45"
+      },
+      "description": "Professional Web GIS converter for ESRI Shapefiles, GeoJSON, KML/KMZ, GPX, AutoCAD DXF, SpatiaLite, and GeoParquet with 100+ EPSG coordinate projections."
+    }
+    </script>
     
     <!-- Stylesheets & Leaflet -->
     <link rel="stylesheet" href="css/styles.css?v=2.5.0">
@@ -113,7 +139,32 @@ $currentUser = getCurrentUser();
             <!-- Top Floating Header Bar -->
             <div class="top-nav-bar">
                 <div class="search-location-group">
-                    <input type="text" class="search-input" placeholder="Global search datasets, EPSG codes, formats...">
+                    <input type="text" class="search-input" id="searchInput" list="gisSearchTerms" placeholder="Search EPSG codes, locations, formats, DLS...">
+                    <datalist id="gisSearchTerms">
+                        <option value="EPSG:4326 - WGS 84 (GPS Geographic Lat/Lon)">
+                        <option value="EPSG:3857 - Web Mercator (Google Maps Standard)">
+                        <option value="EPSG:3400 - NAD83 / Alberta 10-TM">
+                        <option value="EPSG:26911 - NAD83 / UTM Zone 11N">
+                        <option value="EPSG:26912 - NAD83 / UTM Zone 12N">
+                        <option value="EPSG:26913 - NAD83 / UTM Zone 13N">
+                        <option value="EPSG:4269 - NAD83 Geographic">
+                        <option value="EPSG:27700 - OSGB36 / British National Grid">
+                        <option value="EPSG:2154 - RGF93 / Lambert-93 France">
+                        <option value="Shapefile (.shp zip export)">
+                        <option value="GeoJSON (.geojson format)">
+                        <option value="KMZ / KML (Google Earth 3D)">
+                        <option value="GPX (GPS Tracks & Elevation)">
+                        <option value="DXF (AutoCAD 3D CAD Drawing)">
+                        <option value="SpatiaLite (.sqlite spatial database)">
+                        <option value="GeoParquet (.parquet columnar format)">
+                        <option value="Legal Land Description (DLS Township, Range, Section)">
+                        <option value="Open-Elevation DEM 3D Terrain Query">
+                        <option value="Calgary, Alberta, Canada">
+                        <option value="Edmonton, Alberta, Canada">
+                        <option value="Vancouver, BC, Canada">
+                        <option value="Houston, Texas, USA">
+                        <option value="Denver, Colorado, USA">
+                    </datalist>
                 </div>
 
                 <div class="top-actions">
@@ -1006,7 +1057,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=2.9.0"></script>
-    <script src="js/app.js?v=2.9.0"></script>
+    <script src="js/converter.js?v=3.0.0"></script>
+    <script src="js/app.js?v=3.0.0"></script>
 </body>
 </html>

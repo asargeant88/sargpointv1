@@ -1545,6 +1545,74 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('railSpreadsheetNav')?.addEventListener('click', openSpreadsheetGrid);
     document.getElementById('openSpreadsheetGridBtn')?.addEventListener('click', openSpreadsheetGrid);
 
+    // Intelligent Global Search Bar Event Listener (EPSG codes, Locations, Formats, DLS)
+    const searchInputEl = document.getElementById('searchInput');
+    let searchLocationMarker = null;
+
+    if (searchInputEl) {
+        searchInputEl.addEventListener('change', handleGlobalSearch);
+        searchInputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleGlobalSearch();
+        });
+    }
+
+    async function handleGlobalSearch() {
+        const query = searchInputEl?.value.trim();
+        if (!query) return;
+
+        // 1. Check if user selected or typed an EPSG code (e.g. EPSG:3400, EPSG:4326)
+        const epsgMatch = query.match(/EPSG[:\s]*(\d+)/i);
+        if (epsgMatch) {
+            const code = `EPSG:${epsgMatch[1]}`;
+            const crsSelect = document.getElementById('targetCRS') || document.querySelector('select[name="target_crs"]');
+            if (crsSelect) {
+                let found = false;
+                for (let opt of crsSelect.options) {
+                    if (opt.value.includes(epsgMatch[1]) || opt.text.includes(epsgMatch[1])) {
+                        crsSelect.value = opt.value;
+                        found = true;
+                        break;
+                    }
+                }
+                showToast(`Selected Projection: ${code}`);
+                return;
+            }
+        }
+
+        // 2. Check if user typed a File Format term
+        if (/shapefile|shp|geojson|kml|kmz|gpx|dxf|sqlite|parquet/i.test(query)) {
+            showToast(`Searching for ${query.toUpperCase()} format tools...`);
+            return;
+        }
+
+        // 3. Geocode location via OpenStreetMap Nominatim API
+        try {
+            showToast(`Searching location for '${query}'...`);
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+            const data = await res.json();
+            if (data && data.length > 0) {
+                const loc = data[0];
+                const lat = parseFloat(loc.lat);
+                const lon = parseFloat(loc.lon);
+
+                if (searchLocationMarker && leafletMap) leafletMap.removeLayer(searchLocationMarker);
+
+                if (leafletMap) {
+                    searchLocationMarker = L.marker([lat, lon], { title: loc.display_name }).addTo(leafletMap)
+                        .bindPopup(`<strong>${escapeHtml(loc.display_name)}</strong><br>Coordinates: ${lat.toFixed(5)}, ${lon.toFixed(5)}`)
+                        .openPopup();
+
+                    leafletMap.flyTo([lat, lon], 12, { animate: true, duration: 1.5 });
+                }
+                showToast(`Located: ${loc.display_name.split(',')[0]}`);
+            } else {
+                showToast(`No coordinates found for '${query}'. Try an EPSG code or city name.`);
+            }
+        } catch(e) {
+            showToast(`Search error for '${query}'.`);
+        }
+    }
+
     pricingBtn?.addEventListener('click', () => openModal(pricingModal));
     document.getElementById('railPricing')?.addEventListener('click', () => openModal(pricingModal));
     userProfileBadge?.addEventListener('click', () => openModal(authModal));
