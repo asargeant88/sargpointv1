@@ -664,18 +664,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.success && data.datasets && data.datasets.length > 0) {
                 const profileHtml = data.datasets.map(ds => `
                     <div class="dataset-item" style="border-left:3px solid #2563eb; background:#ffffff; border-radius:6px; padding:8px 10px; margin-bottom:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div style="font-weight:700; font-size:0.83rem; color:#1e293b; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                                ${escapeHtml(ds.name)}
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" class="ds-select-checkbox" data-id="${ds.id}" title="Select to combine dataset" style="width:16px; height:16px; cursor:pointer;">
+                            <div style="flex:1; overflow:hidden;">
+                                <div style="font-weight:700; font-size:0.83rem; color:#1e293b; text-overflow:ellipsis; white-space:nowrap; overflow:hidden;">
+                                    ${escapeHtml(ds.name)}
+                                </div>
+                                <div style="font-size:0.72rem; color:#64748b; margin-top:1px;">
+                                    ${ds.feature_count} features • ${ds.crs || 'EPSG:4326'}
+                                </div>
                             </div>
-                            <span style="font-size:0.68rem; background:#eff6ff; color:#2563eb; padding:1px 5px; border-radius:4px; font-weight:700;">
+                            <span style="font-size:0.68rem; background:#eff6ff; color:#2563eb; padding:1px 5px; border-radius:4px; font-weight:700; flex-shrink:0;">
                                 ${ds.format}
                             </span>
                         </div>
-                        <div style="font-size:0.72rem; color:#64748b; margin-top:2px;">
-                            ${ds.feature_count} features • ${ds.crs || 'EPSG:4326'}
-                        </div>
-                        <div style="display:flex; gap:6px; margin-top:6px;">
+                        <div style="display:flex; gap:6px; margin-top:6px; margin-left:24px;">
                             <button class="btn btn-outline btn-load-profile-ds" data-id="${ds.id}" style="padding:2px 6px; font-size:0.72rem; font-weight:600;">
                                 Load Dataset
                             </button>
@@ -686,7 +689,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `).join('');
 
-                listEl.innerHTML = `<div style="font-size:0.75rem; font-weight:700; color:#475569; text-transform:uppercase; margin-bottom:8px;">Saved Profile Datasets (${data.datasets.length})</div>` + profileHtml;
+                listEl.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div style="font-size:0.75rem; font-weight:700; color:#475569; text-transform:uppercase;">
+                            Saved Profile Datasets (${data.datasets.length})
+                        </div>
+                        <button class="btn btn-outline" id="btnCombineSelected" style="padding:2px 8px; font-size:0.72rem; border-color:#059669; color:#059669; background:#ecfdf5; font-weight:700;" title="Combine checked datasets into one layer">
+                            Combine Selected
+                        </button>
+                    </div>
+                    ${profileHtml}
+                `;
+
+                document.getElementById('btnCombineSelected')?.addEventListener('click', combineSelectedProfileDatasets);
 
                 document.querySelectorAll('.btn-load-profile-ds').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
@@ -717,6 +732,66 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error loading saved profile datasets:', e);
         }
     }
+
+    async function combineSelectedProfileDatasets() {
+        const checkedInputs = Array.from(document.querySelectorAll('.ds-select-checkbox:checked'));
+        let targetDatasetIds = checkedInputs.map(cb => cb.getAttribute('data-id'));
+
+        let mergedFeatures = [];
+
+        if (targetDatasetIds.length > 0) {
+            showToast(`Combining ${targetDatasetIds.length} selected profile datasets...`);
+            for (let id of targetDatasetIds) {
+                try {
+                    const res = await fetch(`api/datasets.php?action=get&id=${id}`);
+                    const data = await res.json();
+                    if (data.success && data.dataset) {
+                        const geojson = typeof data.dataset.geojson_data === 'string' ? JSON.parse(data.dataset.geojson_data) : data.dataset.geojson_data;
+                        if (geojson && geojson.features && Array.isArray(geojson.features)) {
+                            mergedFeatures.push(...geojson.features);
+                        } else if (geojson && geojson.type === 'Feature') {
+                            mergedFeatures.push(geojson);
+                        }
+                    }
+                } catch(e) {
+                    console.error(`Error fetching dataset ID ${id}:`, e);
+                }
+            }
+        } else {
+            if (Array.isArray(uploadedDatasets) && uploadedDatasets.length > 0) {
+                uploadedDatasets.forEach(ds => {
+                    if (ds.data && ds.data.features && Array.isArray(ds.data.features)) {
+                        mergedFeatures.push(...ds.data.features);
+                    }
+                });
+            } else if (currentGeoJSON && currentGeoJSON.features && Array.isArray(currentGeoJSON.features)) {
+                mergedFeatures.push(...currentGeoJSON.features);
+            }
+        }
+
+        if (mergedFeatures.length === 0) {
+            showToast('Please check at least one saved dataset checkbox to combine.');
+            return;
+        }
+
+        const mergedGeoJSON = {
+            type: 'FeatureCollection',
+            name: 'Combined_Master_Dataset',
+            crs: { type: 'name', properties: { name: selectedCRS || 'EPSG:4326' } },
+            features: mergedFeatures
+        };
+
+        currentGeoJSON = mergedGeoJSON;
+        renderLayerToMap(mergedGeoJSON);
+
+        const customName = `Combined Dataset (${mergedFeatures.length} features)`;
+        const nameInput = document.getElementById('datasetNameInput');
+        if (nameInput) nameInput.value = customName;
+
+        showToast(`Combined ${mergedFeatures.length} features into a single master layer!`);
+    }
+
+    document.getElementById('btnMergeDatasets')?.addEventListener('click', combineSelectedProfileDatasets);
 
     async function loadSavedProfileDatasetById(datasetId) {
         try {
