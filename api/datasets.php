@@ -63,7 +63,7 @@ if ($action === 'save') {
         $datasetId = $db->lastInsertId();
 
         // Log conversion usage
-        recordConversionUsage($user['id'], $name, $fileSizeMb, $format, $format, $crs, $crs);
+        recordUserConversion($user['id'], $name, $fileSizeMb, $format, $format, $crs, $crs);
 
         echo json_encode([
             'success' => true,

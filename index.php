@@ -55,6 +55,9 @@ $currentUser = getCurrentUser();
     <!-- Stripe JS SDK v3 & Google Identity Services SDK -->
     <script src="https://js.stripe.com/v3/"></script>
     <script async src="https://js.stripe.com/v3/buy-button.js"></script>
+    <script>
+        window.handleGoogleCredentialResponse = window.handleGoogleCredentialResponse || function(res) {};
+    </script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -1086,7 +1089,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=3.4.0"></script>
-    <script src="js/app.js?v=3.4.0"></script>
+    <script src="js/converter.js?v=3.5.0"></script>
+    <script src="js/app.js?v=3.5.0"></script>
 </body>
 </html>
