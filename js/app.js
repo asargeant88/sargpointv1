@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initDLSGridlinesOverlay() {
-        dlsGridlinesLayer = L.layerGroup().addTo(leafletMap);
+        window.dlsGridlinesLayer = L.layerGroup().addTo(leafletMap);
 
         const btnToggle = document.getElementById('btnToggleDLSGrid');
         if (btnToggle) {
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     btnToggle.classList.remove('active', 'btn-primary');
                     btnToggle.classList.add('btn-outline');
-                    dlsGridlinesLayer.clearLayers();
+                    if (window.dlsGridlinesLayer) window.dlsGridlinesLayer.clearLayers();
                 }
             });
         }
@@ -160,8 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderDLSGridlines() {
-        if (!dlsGridlinesLayer || !isDLSGridVisible) return;
-        dlsGridlinesLayer.clearLayers();
+        if (!window.dlsGridlinesLayer || !isDLSGridVisible || !leafletMap) return;
+        window.dlsGridlinesLayer.clearLayers();
 
         const bounds = leafletMap.getBounds();
         const minLat = bounds.getSouth();
@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     weight: 2.5,
                     dashArray: '8, 6',
                     interactive: false
-                }).addTo(dlsGridlinesLayer);
+                }).addTo(window.dlsGridlinesLayer);
 
                 if (zoom >= 5) {
                     const labelLat = Math.max(minLat + 0.5, Math.min(maxLat - 0.5, 52.0));
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             html: `<div style="background:#dc2626; color:#ffffff; padding:2px 7px; border-radius:4px; font-weight:700; font-size:0.75rem; white-space:nowrap; box-shadow:0 2px 5px rgba(0,0,0,0.3); transform:translate(-50%, -50%);">${shortName}</div>`
                         }),
                         interactive: false
-                    }).addTo(dlsGridlinesLayer);
+                    }).addTo(window.dlsGridlinesLayer);
                 }
             }
         });
@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         dashArray: isCorrectionLine ? '6, 4' : '4, 4',
                         opacity: 0.65,
                         interactive: false
-                    }).addTo(dlsGridlinesLayer);
+                    }).addTo(window.dlsGridlinesLayer);
 
                     if (zoom >= 8) {
                         const labelLon = minLon + 0.08;
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 html: `<div style="background:${isCorrectionLine ? '#7c3aed' : '#1e40af'}; color:#ffffff; padding:1px 5px; border-radius:3px; font-weight:600; font-size:0.7rem; white-space:nowrap; opacity:0.9;">${tagText}</div>`
                             }),
                             interactive: false
-                        }).addTo(dlsGridlinesLayer);
+                        }).addTo(window.dlsGridlinesLayer);
                     }
                 }
             }
@@ -269,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     dashArray: (secRow === 0) ? '6, 4' : '3, 3',
                                     opacity: (secRow === 0) ? 0.7 : 0.45,
                                     interactive: false
-                                }).addTo(dlsGridlinesLayer);
+                                }).addTo(window.dlsGridlinesLayer);
                             }
                         }
 
@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         dashArray: '6, 4',
                                         opacity: 0.65,
                                         interactive: false
-                                    }).addTo(dlsGridlinesLayer);
+                                    }).addTo(window.dlsGridlinesLayer);
 
                                     // Range Label Tag at zoom 9+
                                     if (zoom >= 9 && twpMinLat >= minLat && twpMinLat <= maxLat) {
@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                                 html: `<div style="background:#7c3aed; color:#ffffff; padding:1px 4px; border-radius:3px; font-weight:700; font-size:0.65rem; white-space:nowrap; opacity:0.85;">Rge ${range} W${m.name.split(' ')[0][1]}</div>`
                                             }),
                                             interactive: false
-                                        }).addTo(dlsGridlinesLayer);
+                                        }).addTo(window.dlsGridlinesLayer);
                                     }
 
                                     // Section Vertical N-S Crosslines (zoom >= 11)
@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                                     dashArray: '3, 3',
                                                     opacity: 0.45,
                                                     interactive: false
-                                                }).addTo(dlsGridlinesLayer);
+                                                }).addTo(window.dlsGridlinesLayer);
                                             }
                                         }
                                     }

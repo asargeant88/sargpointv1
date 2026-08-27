@@ -639,7 +639,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=1.4.0"></script>
-    <script src="js/app.js?v=1.4.0"></script>
+    <script src="js/converter.js?v=1.4.1"></script>
+    <script src="js/app.js?v=1.4.1"></script>
 </body>
 </html>
