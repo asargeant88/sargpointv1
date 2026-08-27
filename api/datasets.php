@@ -132,22 +132,26 @@ if ($action === 'delete') {
         exit;
     }
 
-    $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-    $datasetId = trim($input['id'] ?? $_GET['id'] ?? $_POST['id'] ?? '');
+    $rawInput = json_decode(file_get_contents('php://input'), true) ?? [];
+    $datasetId = $_GET['id'] ?? $rawInput['id'] ?? $_POST['id'] ?? '';
 
-    if (empty($datasetId)) {
+    if ($datasetId === '' || $datasetId === null) {
         echo json_encode(['success' => false, 'message' => 'Dataset ID is required.']);
         exit;
     }
 
-    $db = getDBConnection();
-    $stmt = $db->prepare("DELETE FROM user_datasets WHERE id = :id AND user_id = :uid");
-    $stmt->execute([':id' => $datasetId, ':uid' => $user['id']]);
+    try {
+        $db = getDBConnection();
+        $stmt = $db->prepare("DELETE FROM user_datasets WHERE id = :id AND user_id = :uid");
+        $stmt->execute([':id' => $datasetId, ':uid' => $user['id']]);
 
-    echo json_encode([
-        'success' => true,
-        'message' => 'Dataset removed from profile.'
-    ]);
+        echo json_encode([
+            'success' => true,
+            'message' => 'Dataset removed from profile.'
+        ]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    }
     exit;
 }
 

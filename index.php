@@ -47,7 +47,7 @@ $currentUser = getCurrentUser();
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script type="module">
         try {
-            import('https://unpkg.com/hyparquet/+esm').then(m => {
+            import('https://cdn.jsdelivr.net/npm/hyparquet/+esm').then(m => {
                 window.hyparquet = m;
             }).catch(() => {});
         } catch(e) {}
@@ -1105,7 +1105,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=3.6.0"></script>
-    <script src="js/app.js?v=3.6.0"></script>
+    <script src="js/converter.js?v=3.7.0"></script>
+    <script src="js/app.js?v=3.7.0"></script>
 </body>
 </html>

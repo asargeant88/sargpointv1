@@ -736,7 +736,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function deleteSavedProfileDatasetById(datasetId) {
         try {
-            const res = await fetch('api/datasets.php?action=delete', {
+            showToast('Deleting dataset...');
+            const res = await fetch(`api/datasets.php?action=delete&id=${encodeURIComponent(datasetId)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: datasetId })
