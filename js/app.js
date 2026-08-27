@@ -1469,6 +1469,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            // Render Live Official Stripe Buy Button if buy_button_id available
+            const buyBtnContainer = document.getElementById('stripeBuyButtonContainer');
+            if (buyBtnContainer) {
+                if (data.buy_button_id && data.stripe_publishable_key) {
+                    buyBtnContainer.innerHTML = `
+                        <stripe-buy-button
+                            buy-button-id="${data.buy_button_id}"
+                            publishable-key="${data.stripe_publishable_key}">
+                        </stripe-buy-button>
+                    `;
+                    buyBtnContainer.style.display = 'flex';
+                } else {
+                    buyBtnContainer.innerHTML = '';
+                    buyBtnContainer.style.display = 'none';
+                }
+            }
+
             closeModal(pricingModal);
             openModal(checkoutModal);
         } catch(e) {

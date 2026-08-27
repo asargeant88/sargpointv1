@@ -26,8 +26,9 @@ $currentUser = getCurrentUser();
             }).catch(() => {});
         } catch(e) {}
     </script>
-    <!-- Stripe JS SDK v3 -->
+    <!-- Stripe JS SDK v3 & Official Buy Button -->
     <script src="https://js.stripe.com/v3/"></script>
+    <script async src="https://js.stripe.com/v3/buy-button.js"></script>
 </head>
 <body>
 
@@ -509,6 +510,9 @@ $currentUser = getCurrentUser();
                     </button>
                 </div>
 
+                <!-- Live Official Stripe Buy Button Container -->
+                <div id="stripeBuyButtonContainer" style="margin-bottom:1.5rem; display:flex; justify-content:center; width:100%;"></div>
+
                 <!-- Credit/Debit Card Form (Stripe Card Gateway) -->
                 <form id="customCardForm">
                     <div style="font-weight:700; font-size:0.88rem; color:#334155; margin-bottom:0.75rem; display:flex; align-items:center; gap:6px;">
@@ -635,7 +639,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=1.3.2"></script>
-    <script src="js/app.js?v=1.3.2"></script>
+    <script src="js/converter.js?v=1.4.0"></script>
+    <script src="js/app.js?v=1.4.0"></script>
 </body>
 </html>
