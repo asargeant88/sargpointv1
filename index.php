@@ -423,7 +423,7 @@ $currentUser = getCurrentUser();
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>100 GB</strong> monthly upload quota</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>Unlimited files</strong> / month</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>Dedicated High-Throughput REST API</strong></li>
-                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> CockroachDB Distributed Cloud Database</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> PostgreSQL Enterprise Cloud Database</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Custom Projections & WKT Pipelines</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Admin Management Portal</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 24/7 Priority VIP Ticket Queue & SLA</li>
@@ -1006,7 +1006,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=2.8.0"></script>
-    <script src="js/app.js?v=2.8.0"></script>
+    <script src="js/converter.js?v=2.9.0"></script>
+    <script src="js/app.js?v=2.9.0"></script>
 </body>
 </html>

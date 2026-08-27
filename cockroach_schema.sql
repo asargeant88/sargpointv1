@@ -1,8 +1,8 @@
--- CockroachDB / PostgreSQL Database Schema for Sargpoint GIS Converter
--- Generated for CockroachDB Cloud Cluster
+-- PostgreSQL Enterprise Database Schema for Sargpoint GIS Converter
+-- Generated for PostgreSQL / Postgres Cloud Cluster
 
 -- 1. Enable Required Extensions (if applicable)
--- CockroachDB supports gen_random_uuid() natively.
+-- PostgreSQL supports gen_random_uuid() natively.
 
 -- 2. Users Table
 CREATE TABLE IF NOT EXISTS users (
