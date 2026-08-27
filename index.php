@@ -387,6 +387,24 @@ $currentUser = getCurrentUser();
                     <label for="cleanDbfOpt">Clean SHP 10-char DBF attributes & embed .prj</label>
                 </div>
 
+                <!-- Export Folder & Line Bends Extraction Controls -->
+                <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:12px; margin:0.75rem 0 1rem 0;">
+                    <div class="form-group" style="margin-bottom:0.6rem;">
+                        <label style="font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase;">Export Folder Category</label>
+                        <input type="text" id="exportFolderNameInput" class="form-control" placeholder="Line / Pipeline Bends" value="Line / Pipeline Bends">
+                    </div>
+
+                    <div class="checkbox-option" style="margin-bottom:0.6rem;">
+                        <input type="checkbox" id="autoExtractBendsOpt" checked>
+                        <label for="autoExtractBendsOpt">Auto-extract & select Line Bends / GPS Vertices on upload</label>
+                    </div>
+
+                    <button class="btn btn-outline" id="btnExtractLineBends" style="width:100%; border-color:#d97706; color:#d97706; background:#fffbe6; font-weight:700; font-size:0.8rem; padding:0.45rem;">
+                        <svg class="svg-icon" viewBox="0 0 24 24" style="fill:#d97706;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        Extract Line Bends & GPS Locations
+                    </button>
+                </div>
+
                 <!-- Attribute Inspector Table -->
                 <div class="spatial-attribute-inspector">
                     <div class="inspector-header">
@@ -1115,7 +1133,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=4.1.0"></script>
-    <script src="js/app.js?v=4.1.0"></script>
+    <script src="js/converter.js?v=5.0.0"></script>
+    <script src="js/app.js?v=5.0.0"></script>
 </body>
 </html>

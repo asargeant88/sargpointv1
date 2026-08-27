@@ -1088,7 +1088,39 @@ document.addEventListener('DOMContentLoaded', () => {
         renderExtractedFilesBox(filename, extractedFiles, folderPath);
         renderGeoJSONOnMap(geojson, spatialInfo);
         renderAttributeTable(geojson);
+
+        // Auto-extract line bends if line features exist and checkbox is enabled
+        const autoExtract = document.getElementById('autoExtractBendsOpt')?.checked;
+        const hasLines = features.some(f => f.geometry && (f.geometry.type === 'LineString' || f.geometry.type === 'MultiLineString'));
+        if (hasLines && autoExtract) {
+            const folderName = document.getElementById('exportFolderNameInput')?.value.trim() || 'Line / Pipeline Bends';
+            const bendsGeoJSON = gisConverter.extractLineBends(geojson, folderName);
+            if (bendsGeoJSON && bendsGeoJSON.features.length > 0) {
+                showToast(`Extracted ${bendsGeoJSON.features.length} Line Bends / GPS Vertices into '${folderName}'!`);
+            }
+        }
     }
+
+    function handleExtractLineBendsAction() {
+        if (!currentGeoJSON) {
+            showToast('Please upload or select a GIS dataset with line features first.');
+            return;
+        }
+
+        const folderName = document.getElementById('exportFolderNameInput')?.value.trim() || 'Line / Pipeline Bends';
+        const bendsGeoJSON = gisConverter.extractLineBends(currentGeoJSON, folderName);
+
+        if (!bendsGeoJSON || bendsGeoJSON.features.length === 0) {
+            showToast('No line features found in current dataset to extract bends from.');
+            return;
+        }
+
+        currentGeoJSON = bendsGeoJSON;
+        processAndDisplayRealDataset(`${folderName}_Vertices`, bendsGeoJSON);
+        showToast(`Extracted ${bendsGeoJSON.features.length} Line Bends & GPS Vertices into folder '${folderName}'!`);
+    }
+
+    document.getElementById('btnExtractLineBends')?.addEventListener('click', handleExtractLineBendsAction);
 
     function renderKmzFoldersBox(geojson) {
         const box = document.getElementById('kmzFoldersBox');

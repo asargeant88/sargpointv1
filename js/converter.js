@@ -1343,6 +1343,107 @@ class GISConverterEngine {
         return '';
     }
 
+    calculateBearing(lat1, lon1, lat2, lon2) {
+        const rad = Math.PI / 180;
+        const φ1 = lat1 * rad;
+        const φ2 = lat2 * rad;
+        const Δλ = (lon2 - lon1) * rad;
+
+        const y = Math.sin(Δλ) * Math.cos(φ2);
+        const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+        const θ = Math.atan2(y, x);
+        return ((θ * 180 / Math.PI) + 360) % 360;
+    }
+
+    extractLineBends(geojson, folderName = 'Line / Pipeline Bends') {
+        if (!geojson) return { type: 'FeatureCollection', features: [] };
+
+        const features = geojson.type === 'FeatureCollection' ? geojson.features : [geojson];
+        const bendFeatures = [];
+        let bendCount = 0;
+
+        features.forEach((feat, lineIdx) => {
+            const geom = feat.geometry;
+            if (!geom) return;
+
+            const lineName = feat.properties?.Name || feat.properties?.name || feat.properties?.filename || `Line #${lineIdx + 1}`;
+
+            let lineCoordsList = [];
+            if (geom.type === 'LineString') {
+                lineCoordsList.push(geom.coordinates);
+            } else if (geom.type === 'MultiLineString') {
+                lineCoordsList.push(...geom.coordinates);
+            }
+
+            lineCoordsList.forEach((coords) => {
+                if (!Array.isArray(coords) || coords.length < 2) return;
+
+                for (let i = 0; i < coords.length; i++) {
+                    const lon = coords[i][0];
+                    const lat = coords[i][1];
+                    const ele = coords[i][2] !== undefined ? coords[i][2] : null;
+
+                    let bendType = 'Vertex Point';
+                    let deflectionAngle = 0;
+                    let turnDirection = '';
+
+                    if (i === 0) {
+                        bendType = 'Line Start Point';
+                    } else if (i === coords.length - 1) {
+                        bendType = 'Line End Point';
+                    } else {
+                        const pPrev = coords[i - 1];
+                        const pCurr = coords[i];
+                        const pNext = coords[i + 1];
+
+                        const b1 = this.calculateBearing(pPrev[1], pPrev[0], pCurr[1], pCurr[0]);
+                        const b2 = this.calculateBearing(pCurr[1], pCurr[0], pNext[1], pNext[0]);
+
+                        let diff = b2 - b1;
+                        if (diff > 180) diff -= 360;
+                        if (diff < -180) diff += 360;
+
+                        deflectionAngle = Math.abs(diff);
+                        turnDirection = diff > 0 ? 'Right Turn' : 'Left Turn';
+                        bendType = deflectionAngle > 3 ? `${deflectionAngle.toFixed(1)}° ${turnDirection} Bend` : 'Tangent Point';
+                    }
+
+                    bendCount++;
+                    const bendFeat = {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Point',
+                            coordinates: ele !== null ? [lon, lat, ele] : [lon, lat]
+                        },
+                        properties: {
+                            Name: `Bend #${bendCount} (${bendType})`,
+                            LineName: lineName,
+                            BendNumber: bendCount,
+                            PointIndex: i + 1,
+                            BendType: bendType,
+                            Latitude: lat,
+                            Longitude: lon,
+                            Elevation_m: ele !== null ? ele : 'N/A',
+                            DeflectionAngle_deg: deflectionAngle.toFixed(1),
+                            TurnDirection: turnDirection || 'Straight',
+                            Folder: folderName,
+                            folder: folderName
+                        }
+                    };
+
+                    this.attachLLDToFeature(bendFeat);
+                    bendFeatures.push(bendFeat);
+                }
+            });
+        });
+
+        return {
+            type: 'FeatureCollection',
+            name: `${folderName}_Vertices`,
+            features: bendFeatures
+        };
+    }
+
     escapeXml(unsafe) {
         if (unsafe === null || unsafe === undefined) return '';
         return String(unsafe)
