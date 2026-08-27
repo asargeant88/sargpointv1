@@ -63,6 +63,10 @@ $currentUser = getCurrentUser();
                 <button class="rail-item" id="railPricing" title="Pricing & Quota Plans">
                     <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
                 </button>
+
+                <button class="rail-item" id="railSupport" title="Help Desk & Support Tickets">
+                    <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z"/></svg>
+                </button>
             </div>
         </div>
 
@@ -389,6 +393,16 @@ $currentUser = getCurrentUser();
                         <button class="btn btn-outline" onclick="selectPlan('enterprise')">Choose Enterprise</button>
                     </div>
                 </div>
+
+                <div style="margin-top:1.8rem; padding-top:1rem; border-top:1px solid #e2e8f0; text-align:center; font-size:0.8rem; color:#64748b; display:flex; justify-content:center; gap:1.2rem; flex-wrap:wrap;">
+                    <a href="#" id="linkTosModal" style="color:#2563eb; text-decoration:none; font-weight:600;">Terms of Service</a>
+                    <span>•</span>
+                    <a href="#" id="linkPrivacyModal" style="color:#2563eb; text-decoration:none; font-weight:600;">Privacy Policy</a>
+                    <span>•</span>
+                    <a href="#" id="linkCancellationModal" style="color:#2563eb; text-decoration:none; font-weight:600;">Cancellation & Refunds</a>
+                    <span>•</span>
+                    <a href="#" id="linkSupportModal" style="color:#2563eb; text-decoration:none; font-weight:600;">Help & Support Tickets</a>
+                </div>
             </div>
         </div>
     </div>
@@ -558,6 +572,211 @@ $currentUser = getCurrentUser();
         </div>
     </div>
 
+    <!-- MODAL 8: Terms of Service (TOS) Modal -->
+    <div class="modal-overlay" id="tosModal">
+        <div class="modal-container" style="max-width:850px;">
+            <div class="modal-header">
+                <h3>Terms of Service</h3>
+                <span class="modal-close"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span>
+            </div>
+            <div class="modal-body" style="padding:1.5rem 2rem; max-height:70vh; overflow-y:auto; font-size:0.88rem; line-height:1.6; color:#334155;">
+                <p style="font-size:0.8rem; color:#64748b; margin-bottom:1rem;"><strong>Effective Date:</strong> January 1, 2026 | <strong>Last Updated:</strong> August 2026</p>
+                
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">1. Acceptance of Terms</h4>
+                <p>By accessing or using Sargpoint GIS Converter ("Service", "Application", "We"), you agree to be bound by these Terms of Service. If you do not agree to all terms, you may not access or use our spatial data converter or API endpoints.</p>
+                
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">2. Spatial Data & Projection Services</h4>
+                <p>Sargpoint GIS Converter provides web-based geometry reprojecting, format conversion (GeoJSON, Shapefile, KML/KMZ, GPX, CSV, Parquet), and Dominion Land Survey (DLS) coordinate computations. While we use industry-standard Proj4 projection mathematical formulas, output calculations are intended for spatial analytical and mapping purposes and should be verified independently for formal boundary legal surveys.</p>
+
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">3. Account Registration & Acceptable Use</h4>
+                <p>Users must provide accurate account information. You are responsible for safeguarding your credentials and API keys. You agree not to reverse engineer, disrupt, or execute automated denial-of-service attacks against our API infrastructure.</p>
+
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">4. Subscription Plans, Quotas & API Access</h4>
+                <p>Subscription tiers (Starter, Pro, Enterprise) grant access to monthly file upload quotas, file size thresholds, and API keys as defined in your active plan. Quotas reset automatically at the beginning of each billing cycle.</p>
+
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">5. Intellectual Property & File Ownership</h4>
+                <p>You retain 100% ownership rights to all GIS datasets, spatial geometry vectors, coordinates, and attributes uploaded to Sargpoint. We claim no ownership over customer spatial data.</p>
+
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">6. Limitation of Liability</h4>
+                <p>To the maximum extent permitted by applicable law, Sargpoint GIS Converter shall not be liable for any indirect, incidental, special, or consequential damages resulting from data loss, conversion errors, or service downtime.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 9: Privacy Policy Modal -->
+    <div class="modal-overlay" id="privacyModal">
+        <div class="modal-container" style="max-width:850px;">
+            <div class="modal-header">
+                <h3>Privacy Policy</h3>
+                <span class="modal-close"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span>
+            </div>
+            <div class="modal-body" style="padding:1.5rem 2rem; max-height:70vh; overflow-y:auto; font-size:0.88rem; line-height:1.6; color:#334155;">
+                <p style="font-size:0.8rem; color:#64748b; margin-bottom:1rem;"><strong>Effective Date:</strong> January 1, 2026 | <strong>Last Updated:</strong> August 2026</p>
+
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">1. Information We Collect</h4>
+                <p>We collect information you provide directly to us when registering an account (name, email address, password hash) and metadata related to your spatial conversion requests (file size, source CRS, target format, timestamps).</p>
+
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">2. Spatial Dataset & Geometry Privacy</h4>
+                <p>GIS files uploaded for conversion (Shapefile zips, KMLs, GPXs) are processed in-memory or in temporary session storage solely to perform coordinate transformations. Uploaded spatial datasets are automatically purged and are never shared, sold, or trained on by third parties.</p>
+
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">3. Payment Information Security</h4>
+                <p>All subscription payments are securely processed by Stripe. We do not store raw credit card numbers on our web servers. Payments use 256-bit SSL encryption and PCI-DSS compliant Stripe checkout embeds.</p>
+
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">4. Your Privacy Rights (GDPR & CCPA)</h4>
+                <p>You have the right to request access to your personal data, export your transaction history, or request full deletion of your Sargpoint account and associated API keys at any time by contacting our support desk.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 10: Cancellation & Refund Policy Modal -->
+    <div class="modal-overlay" id="cancellationModal">
+        <div class="modal-container" style="max-width:850px;">
+            <div class="modal-header">
+                <h3>Cancellation & Refund Policy</h3>
+                <span class="modal-close"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span>
+            </div>
+            <div class="modal-body" style="padding:1.5rem 2rem; max-height:70vh; overflow-y:auto; font-size:0.88rem; line-height:1.6; color:#334155;">
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">1. Subscription Cancellation</h4>
+                <p>You may cancel your Sargpoint GIS Converter subscription (Starter, Pro, or Enterprise) at any time. You can initiate self-service cancellation through your <strong>Billing & Invoices</strong> portal or by opening a ticket with our support desk.</p>
+
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">2. Continued Access Until End of Billing Cycle</h4>
+                <p>When you cancel a monthly or yearly plan, your subscription will remain active until the end of your current paid billing period (`current_period_end`). You will retain access to your full monthly upload quota, EPSG projection tools, and API keys until that date without incurring further renewal charges.</p>
+
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">3. 14-Day Money-Back Guarantee</h4>
+                <p>We offer a full 14-day money-back guarantee for first-time subscribers. If you are not satisfied with Sargpoint within 14 days of your initial purchase, submit a ticket via our Help Desk to receive a 100% refund of your subscription fee.</p>
+
+                <h4 style="font-weight:700; color:#1e293b; margin:1rem 0 0.4rem 0;">4. Refunds & Prorated Billing</h4>
+                <p>Except within the 14-day money-back guarantee period, subscription payments are non-refundable. Prorated refunds are not issued for mid-cycle cancellations, but account upgrades apply credit from unused days toward your new plan balance.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 11: Support Tickets Portal Modal (List & Conversation Thread) -->
+    <div class="modal-overlay" id="ticketsModal">
+        <div class="modal-container" style="max-width:920px;">
+            <div class="modal-header">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <h3>Help Desk & Support Tickets</h3>
+                    <span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:700;" id="ticketsCountBadge">0 Tickets</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <button class="btn btn-primary" id="btnOpenNewTicketModal" style="padding:5px 12px; font-size:0.82rem;">
+                        + Submit New Ticket
+                    </button>
+                    <span class="modal-close"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span>
+                </div>
+            </div>
+            <div class="modal-body" style="padding:1.5rem 2rem;">
+                <!-- Main Layout: Ticket List vs Conversation Drawer -->
+                <div id="ticketsListContainer">
+                    <div style="overflow-x:auto;">
+                        <table class="spreadsheet-table" style="width:100%; border-collapse:collapse;">
+                            <thead>
+                                <tr style="background:#f1f5f9;">
+                                    <th style="padding:10px; text-align:left;">Ticket #</th>
+                                    <th style="padding:10px; text-align:left;">Subject</th>
+                                    <th style="padding:10px; text-align:left;">Category</th>
+                                    <th style="padding:10px; text-align:center;">Priority</th>
+                                    <th style="padding:10px; text-align:center;">Status</th>
+                                    <th style="padding:10px; text-align:left;">Last Updated</th>
+                                    <th style="padding:10px; text-align:center;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ticketsTableBody">
+                                <tr>
+                                    <td colspan="7" style="text-align:center; padding:25px; color:#64748b;">No support tickets found. Click "+ Submit New Ticket" to ask a question or report an issue.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Ticket Conversation Detail Drawer -->
+                <div id="ticketDetailDrawer" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:0.75rem; margin-bottom:1rem;">
+                        <div>
+                            <button type="button" class="btn btn-outline" id="btnBackToTicketsList" style="padding:3px 8px; font-size:0.78rem; margin-bottom:6px;">
+                                &larr; Back to Tickets List
+                            </button>
+                            <h4 style="font-size:1.1rem; font-weight:700; color:#1e293b;" id="ticketDetailSubject">Ticket Subject</h4>
+                            <div style="font-size:0.78rem; color:#64748b; display:flex; gap:10px; margin-top:2px;" id="ticketDetailMeta">
+                                <span id="ticketDetailCode">#TKT-2026-00000</span> | <span id="ticketDetailCategory">Category</span>
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <span id="ticketDetailStatusBadge" style="background:#dcfce7; color:#166534; padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:700;">Open</span>
+                            <div style="margin-top:6px;">
+                                <button class="btn btn-outline" id="btnCloseTicketBtn" style="padding:3px 8px; font-size:0.75rem; color:#dc2626; border-color:#fca5a5;">
+                                    Close Ticket
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Conversation Message Bubbles List -->
+                    <div id="ticketRepliesTimeline" style="max-height:320px; overflow-y:auto; padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:1rem; display:flex; flex-direction:column; gap:12px;"></div>
+
+                    <!-- Reply Input Composer Form -->
+                    <form id="ticketReplyForm" style="display:flex; gap:10px; align-items:flex-end;">
+                        <textarea class="form-control" id="ticketReplyMessageInput" rows="2" placeholder="Type your reply message..." required style="flex:1; padding:0.6rem; font-size:0.88rem;"></textarea>
+                        <button type="submit" class="btn btn-primary" id="btnSubmitTicketReply" style="padding:0.6rem 1.2rem; font-weight:700;">
+                            Send Reply
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 12: Create New Support Ticket Modal -->
+    <div class="modal-overlay" id="newTicketModal">
+        <div class="modal-container" style="max-width:620px;">
+            <div class="modal-header">
+                <h3>Submit New Support Ticket</h3>
+                <span class="modal-close"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span>
+            </div>
+            <div class="modal-body" style="padding:1.5rem 2rem;">
+                <form id="createTicketForm">
+                    <div class="form-group" style="margin-bottom:1rem;">
+                        <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">Subject / Summary</label>
+                        <input type="text" class="form-control" id="newTicketSubject" placeholder="e.g. Issue converting KML to Shapefile projection" required style="padding:0.55rem; width:100%;">
+                    </div>
+                    
+                    <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+                        <div style="flex:1;">
+                            <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">Category</label>
+                            <select class="form-control" id="newTicketCategory" style="padding:0.55rem; width:100%;">
+                                <option value="GIS & CRS Conversion">GIS & CRS Conversion</option>
+                                <option value="DLS & Land Description">DLS & Land Description</option>
+                                <option value="Billing & Cancellation">Billing & Cancellation</option>
+                                <option value="API Access">API Access</option>
+                                <option value="General Question">General Question</option>
+                            </select>
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">Priority</label>
+                            <select class="form-control" id="newTicketPriority" style="padding:0.55rem; width:100%;">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                                <option value="Urgent">Urgent</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:1.2rem;">
+                        <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">Detailed Description</label>
+                        <textarea class="form-control" id="newTicketMessage" rows="4" placeholder="Please describe your question, issue, or error message in detail..." required style="padding:0.6rem; width:100%; font-size:0.88rem;"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="btnSubmitNewTicketForm" style="width:100%; padding:0.75rem; font-weight:700; font-size:0.95rem;">
+                        Submit Support Ticket
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL 5: Real-Time Conversion & Export Progress Overlay Modal -->
     <div class="modal-overlay" id="conversionProgressModal">
         <div class="conversion-progress-card">
@@ -603,7 +822,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=1.6.0"></script>
-    <script src="js/app.js?v=1.6.0"></script>
+    <script src="js/converter.js?v=1.7.0"></script>
+    <script src="js/app.js?v=1.7.0"></script>
 </body>
 </html>

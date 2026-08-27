@@ -1439,6 +1439,255 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Legal & Support Ticket Modals
+    const tosModal = document.getElementById('tosModal');
+    const privacyModal = document.getElementById('privacyModal');
+    const cancellationModal = document.getElementById('cancellationModal');
+    const ticketsModal = document.getElementById('ticketsModal');
+    const newTicketModal = document.getElementById('newTicketModal');
+
+    let activeTicketId = null;
+
+    document.getElementById('linkTosModal')?.addEventListener('click', (e) => { e.preventDefault(); openModal(tosModal); });
+    document.getElementById('linkPrivacyModal')?.addEventListener('click', (e) => { e.preventDefault(); openModal(privacyModal); });
+    document.getElementById('linkCancellationModal')?.addEventListener('click', (e) => { e.preventDefault(); openModal(cancellationModal); });
+    document.getElementById('linkSupportModal')?.addEventListener('click', (e) => { e.preventDefault(); openSupportTicketsPortal(); });
+    document.getElementById('railSupport')?.addEventListener('click', () => openSupportTicketsPortal());
+
+    document.getElementById('btnOpenNewTicketModal')?.addEventListener('click', () => {
+        if (!currentUser) {
+            showToast('Please sign in to submit a support ticket.');
+            openModal(authModal);
+            return;
+        }
+        openModal(newTicketModal);
+    });
+
+    document.getElementById('btnBackToTicketsList')?.addEventListener('click', () => {
+        document.getElementById('ticketDetailDrawer').style.display = 'none';
+        document.getElementById('ticketsListContainer').style.display = 'block';
+        activeTicketId = null;
+    });
+
+    function openSupportTicketsPortal() {
+        if (!currentUser) {
+            showToast('Please sign in to access Help Desk & Support Tickets.');
+            openModal(authModal);
+            return;
+        }
+        document.getElementById('ticketDetailDrawer').style.display = 'none';
+        document.getElementById('ticketsListContainer').style.display = 'block';
+        openModal(ticketsModal);
+        loadUserTickets();
+    }
+
+    async function loadUserTickets() {
+        if (!currentUser) return;
+        try {
+            const res = await fetch('api/tickets.php?action=list');
+            const data = await res.json();
+            const tbody = document.getElementById('ticketsTableBody');
+            const badge = document.getElementById('ticketsCountBadge');
+            if (!tbody) return;
+
+            if (data.success && data.tickets) {
+                if (badge) badge.textContent = `${data.tickets.length} Tickets`;
+
+                if (data.tickets.length > 0) {
+                    tbody.innerHTML = data.tickets.map(t => {
+                        const prioBg = t.priority === 'Urgent' ? '#fee2e2' : (t.priority === 'High' ? '#ffedd5' : '#f1f5f9');
+                        const prioColor = t.priority === 'Urgent' ? '#991b1b' : (t.priority === 'High' ? '#9a3412' : '#475569');
+                        const statusBg = t.status === 'Open' ? '#dcfce7' : (t.status === 'In Progress' ? '#e0f2fe' : '#f1f5f9');
+                        const statusColor = t.status === 'Open' ? '#166534' : (t.status === 'In Progress' ? '#0369a1' : '#475569');
+
+                        return `
+                            <tr style="border-bottom:1px solid #f1f5f9;">
+                                <td style="padding:10px; font-weight:700; font-family:monospace; font-size:0.85rem; color:#2563eb;">${t.ticket_code}</td>
+                                <td style="padding:10px; font-weight:600; color:#1e293b; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(t.subject)}</td>
+                                <td style="padding:10px; font-size:0.8rem; color:#64748b;">${t.category}</td>
+                                <td style="padding:10px; text-align:center;"><span style="background:${prioBg}; color:${prioColor}; padding:2px 6px; border-radius:4px; font-size:0.72rem; font-weight:700;">${t.priority}</span></td>
+                                <td style="padding:10px; text-align:center;"><span style="background:${statusBg}; color:${statusColor}; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:700;">${t.status}</span></td>
+                                <td style="padding:10px; font-size:0.78rem; color:#64748b;">${new Date(t.updated_at).toLocaleDateString()} ${new Date(t.updated_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                                <td style="padding:10px; text-align:center;">
+                                    <button class="btn btn-outline btn-view-ticket" data-id="${t.id}" style="padding:3px 8px; font-size:0.75rem; font-weight:600;">
+                                        View Thread 💬 (${t.reply_count || 0})
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    document.querySelectorAll('.btn-view-ticket').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const tid = e.currentTarget.getAttribute('data-id');
+                            openTicketThread(tid);
+                        });
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:25px; color:#64748b;">No support tickets found. Click "+ Submit New Ticket" to ask a question or report an issue.</td></tr>';
+                }
+            }
+        } catch(e) {
+            console.error('Tickets list loading error:', e);
+        }
+    }
+
+    async function openTicketThread(ticketId) {
+        activeTicketId = ticketId;
+        try {
+            const res = await fetch(`api/tickets.php?action=detail&ticket_id=${ticketId}`);
+            const data = await res.json();
+            if (!data.success || !data.ticket) {
+                showToast(data.message || 'Error loading ticket details.');
+                return;
+            }
+
+            const t = data.ticket;
+            document.getElementById('ticketDetailSubject').textContent = t.subject;
+            document.getElementById('ticketDetailCode').textContent = `#${t.ticket_code}`;
+            document.getElementById('ticketDetailCategory').textContent = `${t.category} (${t.priority} Priority)`;
+            
+            const badge = document.getElementById('ticketDetailStatusBadge');
+            if (badge) {
+                badge.textContent = t.status;
+                badge.style.background = t.status === 'Open' ? '#dcfce7' : (t.status === 'In Progress' ? '#e0f2fe' : '#f1f5f9');
+                badge.style.color = t.status === 'Open' ? '#166534' : (t.status === 'In Progress' ? '#0369a1' : '#475569');
+            }
+
+            const timeline = document.getElementById('ticketRepliesTimeline');
+            if (timeline) {
+                if (t.replies && t.replies.length > 0) {
+                    timeline.innerHTML = t.replies.map(r => {
+                        const isStaff = r.is_staff == 1;
+                        const bubbleBg = isStaff ? '#eff6ff' : '#ffffff';
+                        const borderCol = isStaff ? '#bfdbfe' : '#cbd5e1';
+                        const badgeText = isStaff ? 'SUPPORT STAFF' : 'YOU';
+                        const badgeBg = isStaff ? '#2563eb' : '#475569';
+
+                        return `
+                            <div style="background:${bubbleBg}; border:1px solid ${borderCol}; border-radius:8px; padding:0.8rem; ${isStaff ? 'margin-left:1.5rem;' : 'margin-right:1.5rem;'}">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        <span style="font-weight:700; font-size:0.82rem; color:#1e293b;">${escapeHtml(r.author_name)}</span>
+                                        <span style="background:${badgeBg}; color:#ffffff; padding:1px 5px; border-radius:3px; font-size:0.65rem; font-weight:700;">${badgeText}</span>
+                                    </div>
+                                    <span style="font-size:0.72rem; color:#94a3b8;">${new Date(r.created_at).toLocaleString()}</span>
+                                </div>
+                                <div style="font-size:0.88rem; color:#334155; white-space:pre-wrap; line-height:1.4;">${escapeHtml(r.message)}</div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    timeline.innerHTML = '<div style="text-align:center; padding:15px; color:#94a3b8; font-size:0.82rem;">No messages in this ticket yet.</div>';
+                }
+                timeline.scrollTop = timeline.scrollHeight;
+            }
+
+            document.getElementById('ticketsListContainer').style.display = 'none';
+            document.getElementById('ticketDetailDrawer').style.display = 'block';
+        } catch(e) {
+            showToast('Error retrieving ticket thread.');
+        }
+    }
+
+    // Submit New Support Ticket Form Handler
+    document.getElementById('createTicketForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const subject = document.getElementById('newTicketSubject').value;
+        const category = document.getElementById('newTicketCategory').value;
+        const priority = document.getElementById('newTicketPriority').value;
+        const message = document.getElementById('newTicketMessage').value;
+
+        try {
+            const btn = document.getElementById('btnSubmitNewTicketForm');
+            if (btn) btn.disabled = true;
+
+            const res = await fetch('api/tickets.php?action=create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subject, category, priority, message })
+            });
+            const data = await res.json();
+            if (btn) btn.disabled = false;
+
+            if (data.success) {
+                showToast(data.message || 'Ticket submitted successfully!');
+                document.getElementById('createTicketForm').reset();
+                closeModal(newTicketModal);
+                openSupportTicketsPortal();
+                if (data.ticket_id) openTicketThread(data.ticket_id);
+            } else {
+                showToast(data.message || 'Failed to submit support ticket.');
+            }
+        } catch(err) {
+            showToast('Error submitting support ticket.');
+        }
+    });
+
+    // Submit Reply Form Handler
+    document.getElementById('ticketReplyForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!activeTicketId) return;
+
+        const messageInput = document.getElementById('ticketReplyMessageInput');
+        const message = messageInput.value;
+        if (!message.trim()) return;
+
+        try {
+            const btn = document.getElementById('btnSubmitTicketReply');
+            if (btn) btn.disabled = true;
+
+            const res = await fetch('api/tickets.php?action=reply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticket_id: activeTicketId, message })
+            });
+            const data = await res.json();
+            if (btn) btn.disabled = false;
+
+            if (data.success) {
+                messageInput.value = '';
+                showToast('Reply posted successfully!');
+                openTicketThread(activeTicketId);
+            } else {
+                showToast(data.message || 'Failed to post reply.');
+            }
+        } catch(err) {
+            showToast('Error posting reply.');
+        }
+    });
+
+    // Close Ticket Button Handler
+    document.getElementById('btnCloseTicketBtn')?.addEventListener('click', async () => {
+        if (!activeTicketId) return;
+        try {
+            const res = await fetch('api/tickets.php?action=close', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticket_id: activeTicketId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast('Ticket marked as Closed.');
+                openTicketThread(activeTicketId);
+            } else {
+                showToast(data.message || 'Failed to close ticket.');
+            }
+        } catch(e) {
+            showToast('Error closing ticket.');
+        }
+    });
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     // User Billing Portal Invoice Fetcher
     async function loadUserInvoices() {
         if (!currentUser) return;

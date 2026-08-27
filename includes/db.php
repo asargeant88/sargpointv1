@@ -69,6 +69,32 @@ function initDatabase() {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
     )");
+
+    // Support Tickets Table
+    $db->exec("CREATE TABLE IF NOT EXISTS tickets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ticket_code TEXT UNIQUE NOT NULL,
+        user_id INTEGER NOT NULL,
+        subject TEXT NOT NULL,
+        category TEXT DEFAULT 'General',
+        priority TEXT DEFAULT 'Medium',
+        status TEXT DEFAULT 'Open',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )");
+
+    // Ticket Conversation Replies Table
+    $db->exec("CREATE TABLE IF NOT EXISTS ticket_replies (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ticket_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        is_staff INTEGER DEFAULT 0,
+        message TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (ticket_id) REFERENCES tickets(id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )");
     
     // Ensure default demo user exists for immediate testing if empty
     $stmt = $db->query("SELECT COUNT(*) as cnt FROM users");
