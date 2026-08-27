@@ -387,10 +387,13 @@ $currentUser = getCurrentUser();
                         <div class="plan-name">Starter Plan</div>
                         <div class="plan-price" id="starterPrice">$5 <span>/ mo ($60/yr)</span></div>
                         <ul class="plan-features">
-                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 100 MB monthly upload quota</li>
-                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 30 files / month</li>
-                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> All standard GIS formats</li>
-                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 100+ EPSG projections</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>100 MB</strong> monthly upload quota</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>30 files</strong> / month</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Standard Formats (SHP, GeoJSON, KML, GPX, DXF)</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 100+ EPSG CRS Projections</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Editable Spreadsheet Data Grid</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Terrain Elevations & Legal Land Description (DLS)</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Save Datasets to Profile</li>
                         </ul>
                         <button class="btn btn-outline" onclick="selectPlan('starter')">Choose Starter</button>
                     </div>
@@ -401,10 +404,13 @@ $currentUser = getCurrentUser();
                         <div class="plan-name">Pro Plan</div>
                         <div class="plan-price" id="proPrice">$15 <span>/ mo ($180/yr)</span></div>
                         <ul class="plan-features">
-                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 2 GB monthly upload quota</li>
-                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 500 files / month</li>
-                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Developer API Access</li>
-                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Batch conversion tools</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>2 GB</strong> monthly upload quota</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>500 files</strong> / month</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>Developer API Secret Key Access</strong></li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> GeoParquet & SQLite / SpatiaLite Engines</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> AutoCAD 3D DXF & Google Earth 3D KMZ</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Batch Conversion & Export Suite</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Priority Customer Email & Ticket Support</li>
                         </ul>
                         <button class="btn btn-primary" onclick="selectPlan('pro')">Upgrade to Pro</button>
                     </div>
@@ -414,10 +420,13 @@ $currentUser = getCurrentUser();
                         <div class="plan-name">Enterprise</div>
                         <div class="plan-price" id="enterprisePrice">$35 <span>/ mo ($420/yr)</span></div>
                         <ul class="plan-features">
-                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 100 GB monthly upload quota</li>
-                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Unlimited files / month</li>
-                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Dedicated REST API</li>
-                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Priority support</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>100 GB</strong> monthly upload quota</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>Unlimited files</strong> / month</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>Dedicated High-Throughput REST API</strong></li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> CockroachDB Distributed Cloud Database</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Custom Projections & WKT Pipelines</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Admin Management Portal</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 24/7 Priority VIP Ticket Queue & SLA</li>
                         </ul>
                         <button class="btn btn-outline" onclick="selectPlan('enterprise')">Choose Enterprise</button>
                     </div>
@@ -997,7 +1006,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=2.7.0"></script>
-    <script src="js/app.js?v=2.7.0"></script>
+    <script src="js/converter.js?v=2.8.0"></script>
+    <script src="js/app.js?v=2.8.0"></script>
 </body>
 </html>
