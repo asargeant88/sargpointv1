@@ -584,17 +584,133 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateUIWithAuth() {
+        const railAdmin = document.getElementById('railAdmin');
+
         if (currentUser) {
             document.getElementById('userName').textContent = currentUser.name;
-            document.getElementById('userRole').textContent = currentUser.plan.toUpperCase() + ' Plan';
+            document.getElementById('userRole').textContent = (currentUser.is_admin == 1 ? '👑 ADMIN - ' : '') + currentUser.plan.toUpperCase() + ' Plan';
+            
+            // Show Admin Icon Rail Button if user is admin
+            if (railAdmin) {
+                railAdmin.style.display = (currentUser.is_admin == 1) ? 'flex' : 'none';
+            }
         } else {
             document.getElementById('userName').textContent = 'Sign In / Register';
             document.getElementById('userRole').textContent = 'Free Guest';
+            if (railAdmin) railAdmin.style.display = 'none';
         }
 
         if (currentUsage) {
             const filesText = currentUsage.max_files === -1 ? 'Unlimited' : `${currentUsage.used_files}/${currentUsage.max_files} files`;
             usageBadge.innerHTML = `Plan: <strong>${currentUsage.plan_name}</strong> | Used: <strong>${currentUsage.used_mb} MB</strong> (${filesText})`;
+        }
+    }
+
+    // Admin Control Area Handlers
+    const adminModal = document.getElementById('adminModal');
+    document.getElementById('railAdmin')?.addEventListener('click', () => openAdminPortal());
+    document.getElementById('btnRefreshAdminData')?.addEventListener('click', () => openAdminPortal());
+
+    function openAdminPortal() {
+        if (!currentUser || currentUser.is_admin != 1) {
+            showToast('Access denied. Administrator privileges required.');
+            return;
+        }
+        openModal(adminModal);
+        loadAdminAnalytics();
+        loadAdminUsersList();
+    }
+
+    async function loadAdminAnalytics() {
+        try {
+            const res = await fetch('api/admin.php?action=analytics');
+            const data = await res.json();
+            if (!data.success || !data.analytics) return;
+
+            const a = data.analytics;
+            document.getElementById('adminStatRevenue').textContent = `$${a.total_revenue.toFixed(2)}`;
+            document.getElementById('adminStatTransactions').textContent = `${a.total_transactions} Invoices Paid`;
+
+            document.getElementById('adminStatUsers').textContent = a.total_users;
+            document.getElementById('adminStatSubscriptions').textContent = `${a.plan_counts.starter + a.plan_counts.pro + a.plan_counts.enterprise} Paid Subscriptions`;
+
+            document.getElementById('adminStatConversions').textContent = `${a.total_conversions} Files`;
+            document.getElementById('adminStatVolume').textContent = `${a.total_mb_processed} MB Uploaded`;
+
+            document.getElementById('adminStatOpenTickets').textContent = `${a.tickets_summary.open} Open`;
+            document.getElementById('adminStatTotalTickets').textContent = `${a.tickets_summary.total} Total Help Desk Tickets`;
+        } catch(e) {
+            console.error('Admin analytics error:', e);
+        }
+    }
+
+    async function loadAdminUsersList() {
+        try {
+            const res = await fetch('api/admin.php?action=users_list');
+            const data = await res.json();
+            const tbody = document.getElementById('adminUsersTableBody');
+            if (!tbody) return;
+
+            if (data.success && data.users && data.users.length > 0) {
+                tbody.innerHTML = data.users.map(u => {
+                    const isAdminBadge = u.is_admin == 1 ? '<span style="background:#ffedd5; color:#c2410c; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:700;">ADMIN</span>' : '<span style="color:#94a3b8; font-size:0.75rem;">User</span>';
+                    const planBadgeBg = u.plan === 'enterprise' ? '#f3e8ff' : (u.plan === 'pro' ? '#e0f2fe' : (u.plan === 'starter' ? '#dcfce7' : '#f1f5f9'));
+                    const planBadgeCol = u.plan === 'enterprise' ? '#7e22ce' : (u.plan === 'pro' ? '#0369a1' : (u.plan === 'starter' ? '#15803d' : '#475569'));
+
+                    return `
+                        <tr style="border-bottom:1px solid #f1f5f9;">
+                            <td style="padding:10px;">
+                                <div style="font-weight:700; color:#1e293b; font-size:0.85rem;">${escapeHtml(u.name)}</div>
+                                <div style="font-size:0.75rem; color:#64748b;">${escapeHtml(u.email)}</div>
+                            </td>
+                            <td style="padding:10px; text-align:center;">
+                                <span style="background:${planBadgeBg}; color:${planBadgeCol}; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:700;">${u.plan.toUpperCase()}</span>
+                            </td>
+                            <td style="padding:10px; text-align:center;">${isAdminBadge}</td>
+                            <td style="padding:10px; text-align:center; font-weight:600;">${u.conversion_count || 0}</td>
+                            <td style="padding:10px; text-align:right; font-size:0.8rem; color:#64748b;">${parseFloat(u.total_mb_used || 0).toFixed(1)} MB</td>
+                            <td style="padding:10px; text-align:right; font-weight:700; color:#166534;">$${parseFloat(u.total_spent || 0).toFixed(2)}</td>
+                            <td style="padding:10px; text-align:center;">
+                                <select class="form-control admin-plan-override-select" data-user-id="${u.id}" style="padding:2px 6px; font-size:0.75rem; font-weight:600;">
+                                    <option value="free" ${u.plan === 'free' ? 'selected' : ''}>Free</option>
+                                    <option value="starter" ${u.plan === 'starter' ? 'selected' : ''}>Starter ($10/mo)</option>
+                                    <option value="pro" ${u.plan === 'pro' ? 'selected' : ''}>Pro ($20/mo)</option>
+                                    <option value="enterprise" ${u.plan === 'enterprise' ? 'selected' : ''}>Enterprise ($45/mo)</option>
+                                </select>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.querySelectorAll('.admin-plan-override-select').forEach(sel => {
+                    sel.addEventListener('change', async (e) => {
+                        const targetUid = e.target.getAttribute('data-user-id');
+                        const newPlan = e.target.value;
+
+                        try {
+                            const updateRes = await fetch('api/admin.php?action=update_plan', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ user_id: targetUid, plan: newPlan, billing_cycle: 'monthly' })
+                            });
+                            const updateData = await updateRes.json();
+
+                            if (updateData.success) {
+                                showToast(updateData.message || `Auto-activated ${newPlan.toUpperCase()} plan for user.`);
+                                loadAdminAnalytics();
+                                loadAdminUsersList();
+                                await checkAuthStatus();
+                            } else {
+                                showToast(updateData.message || 'Failed to update plan.');
+                            }
+                        } catch(err) {
+                            showToast('Error overriding user plan.');
+                        }
+                    });
+                });
+            }
+        } catch(e) {
+            console.error('Admin users list error:', e);
         }
     }
 

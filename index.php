@@ -67,6 +67,10 @@ $currentUser = getCurrentUser();
                 <button class="rail-item" id="railSupport" title="Help Desk & Support Tickets">
                     <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z"/></svg>
                 </button>
+
+                <button class="rail-item" id="railAdmin" title="Admin Control Area & System Analytics" style="display:none;">
+                    <svg viewBox="0 0 24 24" style="fill:#ea580c;"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+                </button>
             </div>
         </div>
 
@@ -781,6 +785,85 @@ $currentUser = getCurrentUser();
         </div>
     </div>
 
+    <!-- MODAL 13: Admin Control Area & Analytics Dashboard Modal -->
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal-container" style="max-width:1050px;">
+            <div class="modal-header" style="background:#fff7ed; border-bottom:1px solid #ffedd5;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#ea580c"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+                    <div>
+                        <h3 style="color:#9a3412;">Admin Control Area & System Analytics</h3>
+                        <div style="font-size:0.75rem; color:#c2410c;">Sargpoint SaaS Infrastructure & Customer Overview</div>
+                    </div>
+                </div>
+                <span class="modal-close"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span>
+            </div>
+            <div class="modal-body" style="padding:1.5rem 2rem;">
+                <!-- Admin KPI Cards Row -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+                    <!-- KPI 1: Gross Revenue -->
+                    <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:1rem;">
+                        <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:#64748b;">Gross Revenue</div>
+                        <div style="font-size:1.6rem; font-weight:800; color:#166534; margin-top:2px;" id="adminStatRevenue">$0.00</div>
+                        <div style="font-size:0.72rem; color:#15803d; margin-top:2px;" id="adminStatTransactions">0 Invoices Paid</div>
+                    </div>
+
+                    <!-- KPI 2: Total Registered Users -->
+                    <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:1rem;">
+                        <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:#64748b;">Total Accounts</div>
+                        <div style="font-size:1.6rem; font-weight:800; color:#2563eb; margin-top:2px;" id="adminStatUsers">0</div>
+                        <div style="font-size:0.72rem; color:#1d4ed8; margin-top:2px;" id="adminStatSubscriptions">0 Active Subscriptions</div>
+                    </div>
+
+                    <!-- KPI 3: Conversions & Volume -->
+                    <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:1rem;">
+                        <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:#64748b;">Spatial Data Processed</div>
+                        <div style="font-size:1.6rem; font-weight:800; color:#7c3aed; margin-top:2px;" id="adminStatConversions">0 Files</div>
+                        <div style="font-size:0.72rem; color:#6d28d9; margin-top:2px;" id="adminStatVolume">0 MB Uploaded</div>
+                    </div>
+
+                    <!-- KPI 4: Support Tickets -->
+                    <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:1rem;">
+                        <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:#64748b;">Support Help Desk</div>
+                        <div style="font-size:1.6rem; font-weight:800; color:#ea580c; margin-top:2px;" id="adminStatOpenTickets">0 Open</div>
+                        <div style="font-size:0.72rem; color:#c2410c; margin-top:2px;" id="adminStatTotalTickets">0 Total Tickets</div>
+                    </div>
+                </div>
+
+                <!-- Admin Tabbed Section: User Management Table -->
+                <div style="border-top:1px solid #e2e8f0; padding-top:1rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <h4 style="font-size:1rem; font-weight:700; color:#1e293b;">Registered Users & Plan Overrides</h4>
+                        <button class="btn btn-outline" id="btnRefreshAdminData" style="padding:4px 10px; font-size:0.78rem;">
+                            🔄 Refresh Data
+                        </button>
+                    </div>
+
+                    <div style="overflow-x:auto; max-height:360px; overflow-y:auto;">
+                        <table class="spreadsheet-table" style="width:100%; border-collapse:collapse;">
+                            <thead>
+                                <tr style="background:#f1f5f9; position:sticky; top:0; z-index:2;">
+                                    <th style="padding:10px; text-align:left;">User / Email</th>
+                                    <th style="padding:10px; text-align:center;">Current Plan</th>
+                                    <th style="padding:10px; text-align:center;">Admin Status</th>
+                                    <th style="padding:10px; text-align:center;">Conversions</th>
+                                    <th style="padding:10px; text-align:right;">Data Volume</th>
+                                    <th style="padding:10px; text-align:right;">Total Spent</th>
+                                    <th style="padding:10px; text-align:center;">Plan Override Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminUsersTableBody">
+                                <tr>
+                                    <td colspan="7" style="text-align:center; padding:25px; color:#64748b;">Loading user records...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL 5: Real-Time Conversion & Export Progress Overlay Modal -->
     <div class="modal-overlay" id="conversionProgressModal">
         <div class="conversion-progress-card">
@@ -826,7 +909,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=1.8.0"></script>
-    <script src="js/app.js?v=1.8.0"></script>
+    <script src="js/converter.js?v=1.9.0"></script>
+    <script src="js/app.js?v=1.9.0"></script>
 </body>
 </html>

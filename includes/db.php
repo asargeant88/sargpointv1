@@ -14,6 +14,7 @@ function initDatabase() {
         avatar_url TEXT,
         plan TEXT DEFAULT 'free',
         billing_cycle TEXT DEFAULT 'monthly',
+        is_admin INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
     
@@ -115,12 +116,15 @@ function initDatabase() {
     $count = $stmt->fetch()['cnt'];
     if ($count == 0) {
         $demoPass = password_hash('password123', PASSWORD_BCRYPT);
-        $db->exec("INSERT INTO users (name, email, password_hash, plan) VALUES ('Demo GIS User', 'demo@sargpoint.com', '$demoPass', 'pro')");
+        $db->exec("INSERT INTO users (name, email, password_hash, plan, is_admin) VALUES ('Demo GIS Admin', 'demo@sargpoint.com', '$demoPass', 'enterprise', 1)");
         $userId = $db->lastInsertId();
         
         // Generate a demo API key for pro user
         $demoApiKey = 'sp_live_' . bin2hex(random_bytes(16));
         $db->exec("INSERT INTO api_keys (user_id, name, api_key) VALUES ($userId, 'Default Key', '$demoApiKey')");
+    } else {
+        // Ensure demo user has admin status
+        $db->exec("UPDATE users SET is_admin = 1 WHERE email = 'demo@sargpoint.com'");
     }
 }
 
