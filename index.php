@@ -25,6 +25,7 @@ $currentUser = getCurrentUser();
                 window.hyparquet = m;
             }).catch(() => {});
         } catch(e) {}
+    </script>
     <!-- Stripe JS SDK v3 -->
     <script src="https://js.stripe.com/v3/"></script>
 </head>
@@ -634,7 +635,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=1.3.1"></script>
-    <script src="js/app.js?v=1.3.1"></script>
+    <script src="js/converter.js?v=1.3.2"></script>
+    <script src="js/app.js?v=1.3.2"></script>
 </body>
 </html>
