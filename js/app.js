@@ -782,9 +782,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         currentGeoJSON = mergedGeoJSON;
-        renderLayerToMap(mergedGeoJSON);
-
         const customName = `Combined Dataset (${mergedFeatures.length} features)`;
+        processAndDisplayRealDataset(customName, mergedGeoJSON);
         const nameInput = document.getElementById('datasetNameInput');
         if (nameInput) nameInput.value = customName;
 
@@ -801,7 +800,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.success && data.dataset) {
                 const geojson = typeof data.dataset.geojson_data === 'string' ? JSON.parse(data.dataset.geojson_data) : data.dataset.geojson_data;
                 currentGeoJSON = geojson;
-                renderLayerToMap(geojson);
+                processAndDisplayRealDataset(data.dataset.name || 'Profile Dataset', geojson);
                 showToast(`Loaded dataset '${data.dataset.name}' to map!`);
             } else {
                 showToast(data.message || 'Failed to load dataset.');
@@ -1797,9 +1796,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         currentGeoJSON = mergedGeoJSON;
-        renderLayerToMap(mergedGeoJSON);
-        
         const customName = `Combined Dataset (${mergedFeatures.length} features)`;
+        processAndDisplayRealDataset(customName, mergedGeoJSON);
         const nameInput = document.getElementById('datasetNameInput');
         if (nameInput) nameInput.value = customName;
 
