@@ -130,8 +130,8 @@ function initDatabase() {
         $demoApiKey = 'sp_live_' . bin2hex(random_bytes(16));
         $db->exec("INSERT INTO api_keys (user_id, name, api_key) VALUES ($userId, 'Default Key', '$demoApiKey')");
     } else {
-        // Ensure demo user has admin status
-        $db->exec("UPDATE users SET is_admin = 1 WHERE email = 'demo@sargpoint.com'");
+        // Ensure admin users have admin status
+        $db->exec("UPDATE users SET is_admin = 1, plan = 'enterprise' WHERE email IN ('demo@sargpoint.com', 'asargeant8484@gmail.com')");
     }
 }
 
