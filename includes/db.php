@@ -53,6 +53,22 @@ function initDatabase() {
         last_used_at DATETIME,
         FOREIGN KEY (user_id) REFERENCES users(id)
     )");
+
+    // Transactions & Invoices table
+    $db->exec("CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        transaction_id TEXT UNIQUE NOT NULL,
+        invoice_number TEXT UNIQUE NOT NULL,
+        plan TEXT NOT NULL,
+        billing_cycle TEXT DEFAULT 'monthly',
+        amount REAL NOT NULL,
+        currency TEXT DEFAULT 'USD',
+        gateway TEXT DEFAULT 'paypal',
+        status TEXT DEFAULT 'completed',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )");
     
     // Ensure default demo user exists for immediate testing if empty
     $stmt = $db->query("SELECT COUNT(*) as cnt FROM users");

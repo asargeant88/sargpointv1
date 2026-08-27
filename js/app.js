@@ -76,9 +76,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiModal = document.getElementById('apiModal');
     const spreadsheetModal = document.getElementById('spreadsheetModal');
     const conversionProgressModal = document.getElementById('conversionProgressModal');
+    const checkoutModal = document.getElementById('checkoutModal');
+    const billingModal = document.getElementById('billingModal');
+    const billingBtn = document.getElementById('billingBtn');
 
     let selectedFormat = "gpx";
     let selectedCRS = "EPSG:4326";
+    let currentCheckoutPlan = "pro";
 
     // 1. Initialize Map
     initMap();
@@ -1360,85 +1364,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
     downloadBtn?.addEventListener('click', () => convertBtn.click());
 
-    userProfileBadge.addEventListener('click', () => openModal(authModal));
-    pricingBtn.addEventListener('click', () => openModal(pricingModal));
-    document.getElementById('railPricing')?.addEventListener('click', () => openModal(pricingModal));
-    document.getElementById('railApi')?.addEventListener('click', () => openModal(apiModal));
-    
-    document.getElementById('spreadsheetBtn')?.addEventListener('click', () => {
-        if (currentGeoJSON) renderSpreadsheetGridModal(currentGeoJSON);
-        else showToast('Please upload a GIS dataset first.');
-    });
-    document.getElementById('railSpreadsheetNav')?.addEventListener('click', () => {
-        if (currentGeoJSON) renderSpreadsheetGridModal(currentGeoJSON);
-        else showToast('Please upload a GIS dataset first.');
-    });
-    document.getElementById('openSpreadsheetGridBtn')?.addEventListener('click', () => {
-        if (currentGeoJSON) renderSpreadsheetGridModal(currentGeoJSON);
-    });
-
-    // Email Login / Registration Handler
-    document.getElementById('loginEmailBtn')?.addEventListener('click', async () => {
-        const emailInput = document.getElementById('authEmail');
-        const passInput = document.getElementById('authPassword');
-        const email = emailInput ? emailInput.value.trim() : '';
-        const password = passInput ? passInput.value.trim() : '';
-
-        if (!email || !password) {
-            showToast('Please enter both email and password.');
+    billingBtn?.addEventListener('click', () => {
+        if (!currentUser) {
+            showToast('Please sign in to view billing & invoices.');
+            openModal(authModal);
             return;
         }
-
-        try {
-            let res = await fetch('api/auth.php?action=login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-            let data = await res.json();
-
-            if (data.success) {
-                closeModal(authModal);
-                showToast(`Signed in successfully as ${email}!`);
-                await checkAuthStatus();
-            } else {
-                showToast(data.message || 'Invalid email or password.');
-            }
-        } catch (e) {
-            showToast('Authentication server error.');
-        }
+        openModal(billingModal);
+        loadUserInvoices();
     });
 
-    // Google OAuth Login Handler
-    document.getElementById('loginGoogleBtn')?.addEventListener('click', async () => {
-        const googleId = 'g_oauth_' + Math.floor(Math.random() * 100000000000);
-        const emailInput = document.getElementById('authEmail');
-        const email = (emailInput && emailInput.value.trim()) ? emailInput.value.trim() : 'google.user@sargpoint.com';
-        const name = email.split('@')[0] + ' (Google)';
-        const avatarUrl = 'https://lh3.googleusercontent.com/a/default-user';
+    document.getElementById('btnChangePlanFromBilling')?.addEventListener('click', () => {
+        closeModal(billingModal);
+        openModal(pricingModal);
+    });
 
-        try {
-            const res = await fetch('api/auth.php?action=google', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    google_id: googleId,
-                    email: email,
-                    name: name,
-                    avatar_url: avatarUrl
-                })
-            });
-            const data = await res.json();
-            if (data.success) {
-                closeModal(authModal);
-                showToast(`Authenticated with Google OAuth as ${email}!`);
-                await checkAuthStatus();
-            } else {
-                showToast(data.message || 'Google OAuth failed.');
-            }
-        } catch (e) {
-            showToast('Google OAuth server error.');
-        }
+    // Checkout Tab Switcher (PayPal vs Credit Card)
+    const tabPayPal = document.getElementById('tabPayPal');
+    const tabCreditCard = document.getElementById('tabCreditCard');
+    const paypalTabContent = document.getElementById('paypalTabContent');
+    const cardTabContent = document.getElementById('cardTabContent');
+
+    tabPayPal?.addEventListener('click', () => {
+        tabPayPal.classList.add('active');
+        tabPayPal.style.borderBottom = '2px solid #2563eb';
+        tabPayPal.style.color = '#2563eb';
+        tabPayPal.style.fontWeight = '700';
+        
+        tabCreditCard.classList.remove('active');
+        tabCreditCard.style.borderBottom = 'none';
+        tabCreditCard.style.color = '#64748b';
+        tabCreditCard.style.fontWeight = '600';
+
+        paypalTabContent.style.display = 'block';
+        cardTabContent.style.display = 'none';
+    });
+
+    tabCreditCard?.addEventListener('click', () => {
+        tabCreditCard.classList.add('active');
+        tabCreditCard.style.borderBottom = '2px solid #2563eb';
+        tabCreditCard.style.color = '#2563eb';
+        tabCreditCard.style.fontWeight = '700';
+
+        tabPayPal.classList.remove('active');
+        tabPayPal.style.borderBottom = 'none';
+        tabPayPal.style.color = '#64748b';
+        tabPayPal.style.fontWeight = '600';
+
+        paypalTabContent.style.display = 'none';
+        cardTabContent.style.display = 'block';
     });
 
     document.querySelectorAll('.modal-close').forEach(btn => {
@@ -1463,16 +1437,122 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const res = await fetch('api/auth.php?action=upgrade_plan', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ plan: planName, billing_cycle: isYearlyBilling ? 'yearly' : 'monthly' })
-        });
-        const data = await res.json();
-        if (data.success) {
-            showToast(`Upgraded to ${planName.toUpperCase()}!`);
+        currentCheckoutPlan = planName;
+        const cycle = isYearlyBilling ? 'yearly' : 'monthly';
+
+        try {
+            const res = await fetch(`api/payment.php?action=create_stripe_session&plan=${planName}&billing_cycle=${cycle}`);
+            const data = await res.json();
+            
+            if (!data.success) {
+                showToast(data.message || 'Error initializing checkout.');
+                return;
+            }
+
+            // Update Checkout Modal UI Elements
+            document.getElementById('checkoutPlanName').textContent = `${data.plan_name} Plan`;
+            document.getElementById('checkoutBillingCycle').textContent = (cycle === 'yearly') ? `Billed Yearly ($${data.unit_price}/mo)` : `Billed Monthly ($${data.unit_price}/mo)`;
+            document.getElementById('checkoutTotalAmount').textContent = `$${data.total_amount.toFixed(2)}`;
+            document.getElementById('cardPayAmount').textContent = `$${data.total_amount.toFixed(2)}`;
+            document.getElementById('checkoutDiscountBadge').textContent = (cycle === 'yearly') ? '50% Discount Applied' : 'Active Rate';
+
+            // Show Hosted Stripe Checkout button if URL available
+            const hostedBox = document.getElementById('stripeHostedCheckoutBox');
+            if (hostedBox) {
+                if (data.stripe_checkout_url) {
+                    hostedBox.style.display = 'block';
+                    document.getElementById('btnStripeHostedCheckout').onclick = () => {
+                        window.location.href = data.stripe_checkout_url;
+                    };
+                } else {
+                    hostedBox.style.display = 'none';
+                }
+            }
+
             closeModal(pricingModal);
-            checkAuthStatus();
+            openModal(checkoutModal);
+        } catch(e) {
+            showToast('Checkout connection error.');
         }
     };
+
+    // Stripe Credit Card Form Submission
+    document.getElementById('customCardForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const cardName = document.getElementById('cardNameInput').value;
+        const cardNumber = document.getElementById('cardNumberInput').value;
+        const cardExpiry = document.getElementById('cardExpiryInput').value;
+        const cardCvc = document.getElementById('cardCvcInput').value;
+
+        if (!cardNumber || cardNumber.length < 12) {
+            showToast('Please enter a valid card number.');
+            return;
+        }
+
+        try {
+            const btn = document.getElementById('btnSubmitCardPayment');
+            if (btn) btn.disabled = true;
+
+            const res = await fetch('api/payment.php?action=process_stripe_payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    plan: currentCheckoutPlan,
+                    billing_cycle: isYearlyBilling ? 'yearly' : 'monthly',
+                    card_name: cardName,
+                    card_number: cardNumber,
+                    card_expiry: cardExpiry,
+                    card_cvc: cardCvc
+                })
+            });
+            const data = await res.json();
+            if (btn) btn.disabled = false;
+
+            if (data.success) {
+                closeModal(checkoutModal);
+                showToast(`Stripe Payment Approved! Subscribed to ${currentCheckoutPlan.toUpperCase()} plan.`);
+                await checkAuthStatus();
+            } else {
+                showToast(data.message || 'Stripe card payment failed.');
+            }
+        } catch(err) {
+            showToast('Stripe card processing error.');
+        }
+    });
+
+    // User Billing Portal Invoice Fetcher
+    async function loadUserInvoices() {
+        if (!currentUser) return;
+        document.getElementById('billingActivePlanName').textContent = `${(currentUser.plan || 'Free').toUpperCase()} Plan`;
+        document.getElementById('billingRenewalDate').textContent = `Cycle: ${(currentUser.billing_cycle || 'monthly').toUpperCase()}`;
+        
+        try {
+            const res = await fetch('api/payment.php?action=get_invoices');
+            const data = await res.json();
+            const tbody = document.getElementById('invoicesTableBody');
+            if (!tbody) return;
+
+            if (data.success && data.invoices && data.invoices.length > 0) {
+                tbody.innerHTML = data.invoices.map(inv => `
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:10px; font-weight:700; font-family:monospace; font-size:0.85rem;">${inv.invoice_number}</td>
+                        <td style="padding:10px; font-size:0.8rem; color:#64748b;">${new Date(inv.created_at).toLocaleDateString()}</td>
+                        <td style="padding:10px;"><span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:700;">${inv.plan.toUpperCase()} (${inv.billing_cycle})</span></td>
+                        <td style="padding:10px; text-align:right; font-weight:700;">$${parseFloat(inv.amount).toFixed(2)}</td>
+                        <td style="padding:10px; text-align:center;"><span style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600; text-transform:uppercase;">${inv.gateway}</span></td>
+                        <td style="padding:10px; text-align:center;">
+                            <a href="api/payment.php?action=view_invoice&invoice_number=${inv.invoice_number}" target="_blank" class="btn btn-outline" style="padding:3px 8px; font-size:0.75rem; font-weight:600; border-radius:4px;">
+                                Receipt 📄
+                            </a>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#64748b;">No payment history found. Subscribe to a plan to generate invoices.</td></tr>';
+            }
+        } catch(e) {
+            console.error('Invoice loading error:', e);
+        }
+    }
 });
+

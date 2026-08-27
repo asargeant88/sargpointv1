@@ -25,7 +25,8 @@ $currentUser = getCurrentUser();
                 window.hyparquet = m;
             }).catch(() => {});
         } catch(e) {}
-    </script>
+    <!-- Stripe JS SDK v3 -->
+    <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
 
@@ -123,6 +124,10 @@ $currentUser = getCurrentUser();
                     <button class="btn btn-outline" id="pricingBtn">
                         <svg class="svg-icon" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
                         Pricing & Plans
+                    </button>
+                    <button class="btn btn-outline" id="billingBtn" title="Billing History & Download Invoices">
+                        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+                        Billing & Invoices
                     </button>
                     <div class="user-profile-badge" id="userProfileBadge">
                         <div class="avatar-icon">
@@ -475,6 +480,115 @@ $currentUser = getCurrentUser();
         </div>
     </div>
 
+    <!-- MODAL 6: Subscription Checkout Modal (Stripe Checkout & Card Gateway) -->
+    <div class="modal-overlay" id="checkoutModal">
+        <div class="modal-container" style="max-width:650px;">
+            <div class="modal-header">
+                <h3>Stripe Subscription Checkout</h3>
+                <span class="modal-close"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span>
+            </div>
+            <div class="modal-body" style="padding:1.5rem 2rem;">
+                <!-- Order Summary Box -->
+                <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:1rem; margin-bottom:1.2rem; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-weight:700; font-size:1.05rem; color:#1e293b;" id="checkoutPlanName">Pro Plan</div>
+                        <div style="font-size:0.8rem; color:#64748b;" id="checkoutBillingCycle">Billed Monthly ($20.00 / mo)</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:1.3rem; font-weight:800; color:#2563eb;" id="checkoutTotalAmount">$20.00</div>
+                        <div style="font-size:0.72rem; color:#166534; font-weight:600; background:#dcfce7; padding:2px 6px; border-radius:10px; display:inline-block;" id="checkoutDiscountBadge">Active Rate</div>
+                    </div>
+                </div>
+
+                <!-- Stripe Hosted Checkout Redirect Button (if live API key configured) -->
+                <div id="stripeHostedCheckoutBox" style="display:none; margin-bottom:1.2rem;">
+                    <button class="btn btn-primary" id="btnStripeHostedCheckout" style="width:100%; padding:0.85rem; font-size:1rem; font-weight:700; background:#635bff; border-color:#635bff; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff"><path d="M13.98 11.07c-1.3-.32-2.31-.62-2.31-1.32 0-.6.53-.98 1.48-.98 1.5 0 2.87.6 3.66 1.13l.83-2.12c-.93-.65-2.52-1.12-4.49-1.12-3.1 0-5.18 1.6-5.18 4.09 0 3.84 5.3 3.25 5.3 4.93 0 .76-.69 1.08-1.74 1.08-1.75 0-3.32-.77-4.27-1.42l-.84 2.18c1.12.78 3.12 1.34 5.11 1.34 3.26 0 5.46-1.55 5.46-4.14 0-4.04-5.3-3.32-5.3-4.83z"/></svg>
+                        Proceed to Official Stripe Checkout
+                    </button>
+                </div>
+
+                <!-- Credit/Debit Card Form (Stripe Card Gateway) -->
+                <form id="customCardForm">
+                    <div style="font-weight:700; font-size:0.88rem; color:#334155; margin-bottom:0.75rem; display:flex; align-items:center; gap:6px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#635bff"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+                        Stripe Card Payment Details
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.8rem;">
+                        <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">Cardholder Name</label>
+                        <input type="text" class="form-control" id="cardNameInput" placeholder="John Doe" required style="padding:0.55rem; width:100%;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.8rem;">
+                        <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">Card Number</label>
+                        <input type="text" class="form-control" id="cardNumberInput" placeholder="4242 •••• •••• 4242" maxlength="19" required style="padding:0.55rem; width:100%;">
+                    </div>
+                    <div style="display:flex; gap:0.8rem; margin-bottom:1.2rem;">
+                        <div style="flex:1;">
+                            <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">Expiry (MM/YY)</label>
+                            <input type="text" class="form-control" id="cardExpiryInput" placeholder="12/28" maxlength="5" required style="padding:0.55rem; width:100%;">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">CVC / CVV</label>
+                            <input type="text" class="form-control" id="cardCvcInput" placeholder="382" maxlength="4" required style="padding:0.55rem; width:100%;">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="btnSubmitCardPayment" style="width:100%; padding:0.75rem; font-size:0.95rem; font-weight:700; background:#635bff; border-color:#635bff;">
+                        Pay <span id="cardPayAmount">$20.00</span> & Activate Plan
+                    </button>
+                    <div style="font-size:0.72rem; color:#94a3b8; text-align:center; margin-top:0.6rem; display:flex; align-items:center; justify-content:center; gap:4px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="#94a3b8"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                        Encrypted 256-Bit SSL Stripe Security
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 7: User Billing & Invoices Portal Modal -->
+    <div class="modal-overlay" id="billingModal">
+        <div class="modal-container" style="max-width:850px;">
+            <div class="modal-header">
+                <h3>Billing & Subscription Invoices</h3>
+                <span class="modal-close"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span>
+            </div>
+            <div class="modal-body" style="padding:1.5rem 2rem;">
+                <!-- Current Subscription Status Banner -->
+                <div style="background:linear-gradient(135deg, #1e40af, #2563eb); color:#ffffff; padding:1.2rem; border-radius:8px; margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center; box-shadow:0 4px 12px rgba(37,99,235,0.2);">
+                    <div>
+                        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; opacity:0.9;">Active Subscription</div>
+                        <div style="font-size:1.3rem; font-weight:800; margin-top:2px;" id="billingActivePlanName">Pro Plan</div>
+                        <div style="font-size:0.8rem; opacity:0.85; margin-top:2px;" id="billingRenewalDate">Renews: Active</div>
+                    </div>
+                    <button class="btn btn-outline" style="background:rgba(255,255,255,0.15); color:#ffffff; border-color:rgba(255,255,255,0.4);" id="btnChangePlanFromBilling">
+                        Change Plan
+                    </button>
+                </div>
+
+                <!-- Invoices Table -->
+                <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:#334155;">Payment & Invoice History</h4>
+                <div style="overflow-x:auto;">
+                    <table class="spreadsheet-table" style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr style="background:#f1f5f9;">
+                                <th style="padding:10px; text-align:left;">Invoice #</th>
+                                <th style="padding:10px; text-align:left;">Date</th>
+                                <th style="padding:10px; text-align:left;">Plan & Cycle</th>
+                                <th style="padding:10px; text-align:right;">Amount</th>
+                                <th style="padding:10px; text-align:center;">Gateway</th>
+                                <th style="padding:10px; text-align:center;">Receipt</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoicesTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align:center; padding:20px; color:#64748b;">No payment history found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL 5: Real-Time Conversion & Export Progress Overlay Modal -->
     <div class="modal-overlay" id="conversionProgressModal">
         <div class="conversion-progress-card">
@@ -520,7 +634,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=1.2.0"></script>
-    <script src="js/app.js?v=1.2.0"></script>
+    <script src="js/converter.js?v=1.3.1"></script>
+    <script src="js/app.js?v=1.3.1"></script>
 </body>
 </html>
