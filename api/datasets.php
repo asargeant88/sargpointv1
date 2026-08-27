@@ -142,8 +142,13 @@ if ($action === 'delete') {
 
     try {
         $db = getDBConnection();
-        $stmt = $db->prepare("DELETE FROM user_datasets WHERE id = :id AND user_id = :uid");
-        $stmt->execute([':id' => $datasetId, ':uid' => $user['id']]);
+        if (!empty($user['is_admin']) && $user['is_admin'] == 1) {
+            $stmt = $db->prepare("DELETE FROM user_datasets WHERE id = :id");
+            $stmt->execute([':id' => $datasetId]);
+        } else {
+            $stmt = $db->prepare("DELETE FROM user_datasets WHERE id = :id AND user_id = :uid");
+            $stmt->execute([':id' => $datasetId, ':uid' => $user['id']]);
+        }
 
         echo json_encode([
             'success' => true,

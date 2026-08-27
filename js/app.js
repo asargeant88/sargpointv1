@@ -697,8 +697,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 document.querySelectorAll('.btn-delete-profile-ds').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         const id = e.currentTarget.getAttribute('data-id');
-                        if (confirm('Are you sure you want to remove this dataset from your profile?')) {
+                        if (id) {
                             await deleteSavedProfileDatasetById(id);
                         }
                     });
