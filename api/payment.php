@@ -118,11 +118,16 @@ if ($action === 'create_stripe_session') {
         }
     }
     
+    $stripeProductId = $planConfig['stripe_product_id'] ?? '';
+    $stripePriceId = ($cycle === 'yearly') ? ($planConfig['stripe_price_yearly'] ?? '') : ($planConfig['stripe_price_monthly'] ?? '');
+
     echo json_encode([
         'success' => true,
         'stripe_publishable_key' => STRIPE_PUBLISHABLE_KEY,
         'stripe_session_id' => $stripeSessionId,
         'stripe_checkout_url' => $stripeCheckoutUrl,
+        'stripe_product_id' => $stripeProductId,
+        'stripe_price_id' => $stripePriceId,
         'plan' => $plan,
         'plan_name' => $planConfig['name'],
         'billing_cycle' => $cycle,
