@@ -8,7 +8,7 @@ function getCurrentUser() {
     }
     
     $db = getDBConnection();
-    $stmt = $db->prepare("SELECT id, name, email, google_id, avatar_url, plan, billing_cycle, created_at FROM users WHERE id = :id");
+    $stmt = $db->prepare("SELECT id, name, email, google_id, avatar_url, plan, billing_cycle, is_admin, created_at FROM users WHERE id = :id");
     $stmt->execute([':id' => $_SESSION['user_id']]);
     return $stmt->fetch() ?: null;
 }
