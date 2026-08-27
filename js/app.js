@@ -1000,6 +1000,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDatasetsSubpanelList();
 
         document.getElementById('drawerDatasetTitle').textContent = filename;
+        const nameInput = document.getElementById('datasetNameInput');
+        if (nameInput) nameInput.value = filename.replace(/\.[^/.]+$/, "");
         if (spatialInfo.hasData) {
             const latStr = spatialInfo.center[0].toFixed(4);
             const lonStr = spatialInfo.center[1].toFixed(4);
@@ -1642,11 +1644,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let rawName = 'Untitled Dataset';
-        if (Array.isArray(uploadedDatasets) && uploadedDatasets.length > 0 && uploadedDatasets[0] && uploadedDatasets[0].name) {
-            rawName = uploadedDatasets[0].name;
-        } else if (currentGeoJSON && currentGeoJSON.name) {
-            rawName = currentGeoJSON.name;
+        let customInputName = document.getElementById('datasetNameInput')?.value.trim();
+        let rawName = customInputName || '';
+        if (!rawName) {
+            if (Array.isArray(uploadedDatasets) && uploadedDatasets.length > 0 && uploadedDatasets[0] && uploadedDatasets[0].name) {
+                rawName = uploadedDatasets[0].name;
+            } else if (currentGeoJSON && currentGeoJSON.name) {
+                rawName = currentGeoJSON.name;
+            } else {
+                rawName = 'Untitled Dataset';
+            }
         }
         const dsName = String(rawName).replace(/\.[^/.]+$/, "");
         const fc = currentGeoJSON.features ? currentGeoJSON.features.length : 1;
@@ -1687,6 +1694,44 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Connection error while saving dataset.');
         }
     });
+
+    // Combine / Merge Datasets Handler
+    function combineAllActiveDatasets() {
+        let mergedFeatures = [];
+
+        if (Array.isArray(uploadedDatasets) && uploadedDatasets.length > 0) {
+            uploadedDatasets.forEach(ds => {
+                if (ds.data && ds.data.features && Array.isArray(ds.data.features)) {
+                    mergedFeatures.push(...ds.data.features);
+                }
+            });
+        } else if (currentGeoJSON && currentGeoJSON.features && Array.isArray(currentGeoJSON.features)) {
+            mergedFeatures.push(...currentGeoJSON.features);
+        }
+
+        if (mergedFeatures.length === 0) {
+            showToast('No active spatial features or layers found to combine.');
+            return;
+        }
+
+        const mergedGeoJSON = {
+            type: 'FeatureCollection',
+            name: 'Combined_Merged_Dataset',
+            crs: { type: 'name', properties: { name: selectedCRS || 'EPSG:4326' } },
+            features: mergedFeatures
+        };
+
+        currentGeoJSON = mergedGeoJSON;
+        renderLayerToMap(mergedGeoJSON);
+        
+        const customName = `Combined Dataset (${mergedFeatures.length} features)`;
+        const nameInput = document.getElementById('datasetNameInput');
+        if (nameInput) nameInput.value = customName;
+
+        showToast(`Combined ${mergedFeatures.length} features into a single unified dataset!`);
+    }
+
+    document.getElementById('btnMergeDatasets')?.addEventListener('click', combineAllActiveDatasets);
 
     function openSpreadsheetGrid() {
         if (!currentGeoJSON) {
