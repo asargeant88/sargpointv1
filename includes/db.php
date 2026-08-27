@@ -111,6 +111,13 @@ function initDatabase() {
         FOREIGN KEY (user_id) REFERENCES users(id)
     )");
     
+    // Auto-migrate is_admin column if missing in existing table
+    try {
+        $db->exec("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0");
+    } catch (Exception $e) {
+        // Column already exists
+    }
+
     // Ensure default demo user exists for immediate testing if empty
     $stmt = $db->query("SELECT COUNT(*) as cnt FROM users");
     $count = $stmt->fetch()['cnt'];
