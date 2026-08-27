@@ -226,6 +226,10 @@ $currentUser = getCurrentUser();
                         <svg class="svg-icon" viewBox="0 0 24 24" style="fill:#ea580c;"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
                         Admin Portal
                     </button>
+                    <button class="btn btn-outline" id="btnLogoutTop" style="display:none; border-color:#fca5a5; color:#dc2626; background:#fef2f2; font-weight:700;">
+                        <svg class="svg-icon" viewBox="0 0 24 24" style="fill:#dc2626;"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+                        Sign Out
+                    </button>
                     <div class="user-profile-badge" id="userProfileBadge">
                         <div class="avatar-icon">
                             <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
@@ -406,10 +410,11 @@ $currentUser = getCurrentUser();
                 <span class="modal-close"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span>
             </div>
             <div class="modal-body" style="padding:1.5rem;">
-                <div style="text-align:center; margin-bottom:1.5rem;">
-                    <div style="font-weight:700; font-size:1.1rem; color:var(--text-primary);">Sargpoint GIS Workspace</div>
-                    <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">Sign in to access your plan limits and API keys</div>
-                </div>
+                <div id="authModalFormSection">
+                    <div style="text-align:center; margin-bottom:1.5rem;">
+                        <div style="font-weight:700; font-size:1.1rem; color:var(--text-primary);">Sargpoint GIS Workspace</div>
+                        <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">Sign in to access your plan limits and API keys</div>
+                    </div>
 
                 <div class="form-group">
                     <label>Email Address</label>
@@ -442,6 +447,17 @@ $currentUser = getCurrentUser();
                      data-size="large" 
                      data-logo_alignment="left"
                      style="width:100%; display:flex; justify-content:center; margin-top:0.5rem;">
+                </div>
+                </div>
+
+                <div id="authModalLoggedInSection" style="display:none; text-align:center; padding:0.5rem 0;">
+                    <div style="font-weight:700; font-size:1.15rem; color:var(--text-primary);" id="loggedInAccountName">User Account</div>
+                    <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;" id="loggedInAccountEmail">user@domain.com</div>
+                    <div style="margin-top:12px; font-weight:700; color:#2563eb; font-size:0.9rem;" id="loggedInAccountPlan">ENTERPRISE Plan</div>
+                    
+                    <button class="btn btn-outline" id="btnLogoutModal" style="width:100%; margin-top:1.5rem; padding:0.75rem; border-color:#fca5a5; color:#dc2626; background:#fef2f2; font-weight:700;">
+                        Sign Out of Sargpoint
+                    </button>
                 </div>
             </div>
         </div>
@@ -1089,7 +1105,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=3.5.0"></script>
-    <script src="js/app.js?v=3.5.0"></script>
+    <script src="js/converter.js?v=3.6.0"></script>
+    <script src="js/app.js?v=3.6.0"></script>
 </body>
 </html>

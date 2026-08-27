@@ -133,7 +133,12 @@ if ($action === 'delete') {
     }
 
     $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-    $datasetId = intval($input['id'] ?? 0);
+    $datasetId = trim($input['id'] ?? $_GET['id'] ?? $_POST['id'] ?? '');
+
+    if (empty($datasetId)) {
+        echo json_encode(['success' => false, 'message' => 'Dataset ID is required.']);
+        exit;
+    }
 
     $db = getDBConnection();
     $stmt = $db->prepare("DELETE FROM user_datasets WHERE id = :id AND user_id = :uid");

@@ -586,21 +586,37 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUIWithAuth() {
         const railAdmin = document.getElementById('railAdmin');
         const topbarAdmin = document.getElementById('topbarAdminBtn');
+        const btnLogoutTop = document.getElementById('btnLogoutTop');
+        const authFormSec = document.getElementById('authModalFormSection');
+        const authLoggedInSec = document.getElementById('authModalLoggedInSection');
 
         if (currentUser) {
             document.getElementById('userName').textContent = currentUser.name;
             document.getElementById('userRole').textContent = (currentUser.is_admin == 1 ? 'ADMIN - ' : '') + currentUser.plan.toUpperCase() + ' Plan';
             
-            // Show Admin Icon Rail & Topbar Buttons if user is admin
             const isAdminUser = (currentUser.is_admin == 1);
             if (railAdmin) railAdmin.style.display = isAdminUser ? 'flex' : 'none';
             if (topbarAdmin) topbarAdmin.style.display = isAdminUser ? 'inline-flex' : 'none';
+            if (btnLogoutTop) btnLogoutTop.style.display = 'inline-flex';
+
+            if (authFormSec) authFormSec.style.display = 'none';
+            if (authLoggedInSec) {
+                authLoggedInSec.style.display = 'block';
+                document.getElementById('loggedInAccountName').textContent = currentUser.name;
+                document.getElementById('loggedInAccountEmail').textContent = currentUser.email;
+                document.getElementById('loggedInAccountPlan').textContent = `${currentUser.plan.toUpperCase()} PLAN` + (currentUser.is_admin == 1 ? ' (ADMIN)' : '');
+            }
+
             loadUserSavedProfileDatasets();
         } else {
             document.getElementById('userName').textContent = 'Sign In / Register';
             document.getElementById('userRole').textContent = 'Free Guest';
             if (railAdmin) railAdmin.style.display = 'none';
             if (topbarAdmin) topbarAdmin.style.display = 'none';
+            if (btnLogoutTop) btnLogoutTop.style.display = 'none';
+
+            if (authFormSec) authFormSec.style.display = 'block';
+            if (authLoggedInSec) authLoggedInSec.style.display = 'none';
         }
 
         if (currentUsage) {
@@ -608,6 +624,34 @@ document.addEventListener('DOMContentLoaded', () => {
             usageBadge.innerHTML = `Plan: <strong>${currentUsage.plan_name}</strong> | Used: <strong>${currentUsage.used_mb} MB</strong> (${filesText})`;
         }
     }
+
+    async function handleUserLogout() {
+        try {
+            const res = await fetch('api/auth.php?action=logout');
+            const data = await res.json();
+            if (data.success) {
+                currentUser = null;
+                currentUsage = null;
+                showToast('Logged out successfully.');
+                closeModal(authModal);
+                updateUIWithAuth();
+                const listEl = document.getElementById('datasetsList');
+                if (listEl) {
+                    listEl.innerHTML = `
+                        <div style="padding:1.5rem 1rem; text-align:center; color:var(--text-secondary); font-size:0.85rem;">
+                            <div>No datasets uploaded yet</div>
+                            <div style="font-size:0.75rem; margin-top:0.35rem;">Sign in or drag & drop a GIS file to map</div>
+                        </div>
+                    `;
+                }
+            }
+        } catch(e) {
+            showToast('Error signing out.');
+        }
+    }
+
+    document.getElementById('btnLogoutTop')?.addEventListener('click', handleUserLogout);
+    document.getElementById('btnLogoutModal')?.addEventListener('click', handleUserLogout);
 
     async function loadUserSavedProfileDatasets() {
         if (!currentUser) return;
@@ -659,6 +703,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                 });
+            } else {
+                listEl.innerHTML = `
+                    <div style="padding:1.5rem 1rem; text-align:center; color:var(--text-secondary); font-size:0.85rem;">
+                        <div>No saved profile datasets</div>
+                        <div style="font-size:0.75rem; margin-top:0.35rem;">Upload or generate a GIS dataset and click 'Save to Profile'</div>
+                    </div>
+                `;
             }
         } catch(e) {
             console.error('Error loading saved profile datasets:', e);
