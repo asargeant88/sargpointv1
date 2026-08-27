@@ -82,7 +82,10 @@ if ($action === 'reply') {
         exit;
     }
     
-    $res = addReplyToTicket($ticket['id'], $user['id'], $message, 0);
+    require_once __DIR__ . '/../includes/admin.php';
+    $isStaff = isAdmin() ? 1 : 0;
+    
+    $res = addReplyToTicket($ticket['id'], $user['id'], $message, $isStaff);
     if ($res['success']) {
         // Return updated ticket thread
         $updatedTicket = getTicketDetailsWithThread($ticket['id'], $user['id']);

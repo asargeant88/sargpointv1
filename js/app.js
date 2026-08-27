@@ -585,19 +585,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateUIWithAuth() {
         const railAdmin = document.getElementById('railAdmin');
+        const topbarAdmin = document.getElementById('topbarAdminBtn');
 
         if (currentUser) {
             document.getElementById('userName').textContent = currentUser.name;
             document.getElementById('userRole').textContent = (currentUser.is_admin == 1 ? '👑 ADMIN - ' : '') + currentUser.plan.toUpperCase() + ' Plan';
             
-            // Show Admin Icon Rail Button if user is admin
-            if (railAdmin) {
-                railAdmin.style.display = (currentUser.is_admin == 1) ? 'flex' : 'none';
-            }
+            // Show Admin Icon Rail & Topbar Buttons if user is admin
+            const isAdminUser = (currentUser.is_admin == 1);
+            if (railAdmin) railAdmin.style.display = isAdminUser ? 'flex' : 'none';
+            if (topbarAdmin) topbarAdmin.style.display = isAdminUser ? 'inline-flex' : 'none';
         } else {
             document.getElementById('userName').textContent = 'Sign In / Register';
             document.getElementById('userRole').textContent = 'Free Guest';
             if (railAdmin) railAdmin.style.display = 'none';
+            if (topbarAdmin) topbarAdmin.style.display = 'none';
         }
 
         if (currentUsage) {
@@ -609,6 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Admin Control Area Handlers
     const adminModal = document.getElementById('adminModal');
     document.getElementById('railAdmin')?.addEventListener('click', () => openAdminPortal());
+    document.getElementById('topbarAdminBtn')?.addEventListener('click', () => openAdminPortal());
     document.getElementById('btnRefreshAdminData')?.addEventListener('click', () => openAdminPortal());
 
     function openAdminPortal() {
@@ -1747,10 +1750,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         const statusBg = t.status === 'Open' ? '#dcfce7' : (t.status === 'In Progress' ? '#e0f2fe' : '#f1f5f9');
                         const statusColor = t.status === 'Open' ? '#166534' : (t.status === 'In Progress' ? '#0369a1' : '#475569');
 
+                        const customerInfo = t.customer_email ? `<div style="font-size:0.75rem; color:#ea580c; font-weight:600;">Customer: ${escapeHtml(t.customer_name)} (${escapeHtml(t.customer_email)})</div>` : '';
+
                         return `
                             <tr style="border-bottom:1px solid #f1f5f9;">
                                 <td style="padding:10px; font-weight:700; font-family:monospace; font-size:0.85rem; color:#2563eb;">${t.ticket_code}</td>
-                                <td style="padding:10px; font-weight:600; color:#1e293b; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(t.subject)}</td>
+                                <td style="padding:10px; color:#1e293b; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                    <div style="font-weight:600;">${escapeHtml(t.subject)}</div>
+                                    ${customerInfo}
+                                </td>
                                 <td style="padding:10px; font-size:0.8rem; color:#64748b;">${t.category}</td>
                                 <td style="padding:10px; text-align:center;"><span style="background:${prioBg}; color:${prioColor}; padding:2px 6px; border-radius:4px; font-size:0.72rem; font-weight:700;">${t.priority}</span></td>
                                 <td style="padding:10px; text-align:center;"><span style="background:${statusBg}; color:${statusColor}; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:700;">${t.status}</span></td>

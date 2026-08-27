@@ -54,19 +54,32 @@ function createNewTicket($userId, $subject, $category = 'General', $priority = '
 }
 
 /**
- * Get list of tickets for a specific user
+ * Get list of tickets for a specific user (or all tickets if user is an admin)
  */
 function getUserTicketsList($userId) {
     $db = getDBConnection();
-    $stmt = $db->prepare("
-        SELECT t.*, 
-               (SELECT COUNT(*) FROM ticket_replies tr WHERE tr.ticket_id = t.id) as reply_count
-        FROM tickets t 
-        WHERE t.user_id = :uid 
-        ORDER BY t.updated_at DESC
-    ");
-    $stmt->execute([':uid' => $userId]);
-    return $stmt->fetchAll();
+    require_once __DIR__ . '/admin.php';
+
+    if (isAdmin()) {
+        $stmt = $db->query("
+            SELECT t.*, u.name as customer_name, u.email as customer_email,
+                   (SELECT COUNT(*) FROM ticket_replies tr WHERE tr.ticket_id = t.id) as reply_count
+            FROM tickets t 
+            JOIN users u ON t.user_id = u.id
+            ORDER BY t.updated_at DESC
+        ");
+        return $stmt->fetchAll();
+    } else {
+        $stmt = $db->prepare("
+            SELECT t.*, 
+                   (SELECT COUNT(*) FROM ticket_replies tr WHERE tr.ticket_id = t.id) as reply_count
+            FROM tickets t 
+            WHERE t.user_id = :uid 
+            ORDER BY t.updated_at DESC
+        ");
+        $stmt->execute([':uid' => $userId]);
+        return $stmt->fetchAll();
+    }
 }
 
 /**
@@ -81,7 +94,8 @@ function getTicketDetailsWithThread($ticketCodeOrId, $userId = null) {
             WHERE (t.ticket_code = :id OR t.id = :id)";
     $params = [':id' => $ticketCodeOrId];
     
-    if ($userId !== null) {
+    require_once __DIR__ . '/admin.php';
+    if ($userId !== null && !isAdmin()) {
         $sql .= " AND t.user_id = :uid";
         $params[':uid'] = $userId;
     }
