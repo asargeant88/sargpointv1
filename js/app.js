@@ -1101,23 +1101,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function handleExtractLineBendsAction() {
+    async function handleExtractLineBendsAction() {
         if (!currentGeoJSON) {
             showToast('Please upload or select a GIS dataset with line features first.');
             return;
         }
 
+        const btn = document.getElementById('btnExtractLineBends');
         const folderName = document.getElementById('exportFolderNameInput')?.value.trim() || 'Line / Pipeline Bends';
-        const bendsGeoJSON = gisConverter.extractLineBends(currentGeoJSON, folderName);
-
-        if (!bendsGeoJSON || bendsGeoJSON.features.length === 0) {
-            showToast('No line features found in current dataset to extract bends from.');
-            return;
+        
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `Extracting Line Bends (0%)...`;
         }
 
-        currentGeoJSON = bendsGeoJSON;
-        processAndDisplayRealDataset(`${folderName}_Vertices`, bendsGeoJSON);
-        showToast(`Extracted ${bendsGeoJSON.features.length} Line Bends & GPS Vertices into folder '${folderName}'!`);
+        showToast('Extracting Line Bends & GPS Locations...');
+
+        try {
+            const bendsGeoJSON = await gisConverter.extractLineBendsAsync(currentGeoJSON, folderName, (curr, total) => {
+                const pct = total > 0 ? Math.round((curr / total) * 100) : 100;
+                if (btn) btn.innerHTML = `Extracting Bends (${pct}%)...`;
+            });
+
+            if (!bendsGeoJSON || bendsGeoJSON.features.length === 0) {
+                showToast('No line features found in current dataset to extract bends from.');
+            } else {
+                currentGeoJSON = bendsGeoJSON;
+                processAndDisplayRealDataset(`${folderName}_Vertices`, bendsGeoJSON);
+                showToast(`Successfully extracted ${bendsGeoJSON.features.length} Line Bends & GPS Vertices into '${folderName}'!`);
+            }
+        } catch(e) {
+            showToast('Error extracting line bends.');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<svg class="svg-icon" viewBox="0 0 24 24" style="fill:#d97706;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> Extract Line Bends & GPS Locations`;
+            }
+        }
     }
 
     document.getElementById('btnExtractLineBends')?.addEventListener('click', handleExtractLineBendsAction);

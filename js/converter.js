@@ -1355,16 +1355,29 @@ class GISConverterEngine {
         return ((θ * 180 / Math.PI) + 360) % 360;
     }
 
-    extractLineBends(geojson, folderName = 'Line / Pipeline Bends') {
+    async extractLineBendsAsync(geojson, folderName = 'Line / Pipeline Bends', onProgress = null) {
         if (!geojson) return { type: 'FeatureCollection', features: [] };
 
         const features = geojson.type === 'FeatureCollection' ? geojson.features : [geojson];
         const bendFeatures = [];
         let bendCount = 0;
 
-        features.forEach((feat, lineIdx) => {
-            const geom = feat.geometry;
+        let totalCoordsCount = 0;
+        features.forEach(feat => {
+            const geom = feat?.geometry;
             if (!geom) return;
+            if (geom.type === 'LineString') totalCoordsCount += geom.coordinates.length;
+            else if (geom.type === 'MultiLineString') {
+                geom.coordinates.forEach(c => totalCoordsCount += c.length);
+            }
+        });
+
+        let processedCount = 0;
+
+        for (let lineIdx = 0; lineIdx < features.length; lineIdx++) {
+            const feat = features[lineIdx];
+            const geom = feat?.geometry;
+            if (!geom) continue;
 
             const lineName = feat.properties?.Name || feat.properties?.name || feat.properties?.filename || `Line #${lineIdx + 1}`;
 
@@ -1375,10 +1388,12 @@ class GISConverterEngine {
                 lineCoordsList.push(...geom.coordinates);
             }
 
-            lineCoordsList.forEach((coords) => {
-                if (!Array.isArray(coords) || coords.length < 2) return;
+            for (let segIdx = 0; segIdx < lineCoordsList.length; segIdx++) {
+                const coords = lineCoordsList[segIdx];
+                if (!Array.isArray(coords) || coords.length < 2) continue;
 
                 for (let i = 0; i < coords.length; i++) {
+                    processedCount++;
                     const lon = coords[i][0];
                     const lat = coords[i][1];
                     const ele = coords[i][2] !== undefined ? coords[i][2] : null;
@@ -1433,15 +1448,95 @@ class GISConverterEngine {
 
                     this.attachLLDToFeature(bendFeat);
                     bendFeatures.push(bendFeat);
+
+                    if (processedCount % 50 === 0) {
+                        if (typeof onProgress === 'function') {
+                            onProgress(processedCount, totalCoordsCount);
+                        }
+                        await new Promise(r => setTimeout(r, 0));
+                    }
                 }
-            });
-        });
+            }
+        }
+
+        if (typeof onProgress === 'function') {
+            onProgress(totalCoordsCount, totalCoordsCount);
+        }
 
         return {
             type: 'FeatureCollection',
             name: `${folderName}_Vertices`,
             features: bendFeatures
         };
+    }
+
+    extractLineBends(geojson, folderName = 'Line / Pipeline Bends') {
+        if (!geojson) return { type: 'FeatureCollection', features: [] };
+        const features = geojson.type === 'FeatureCollection' ? geojson.features : [geojson];
+        const bendFeatures = [];
+        let bendCount = 0;
+
+        features.forEach((feat, lineIdx) => {
+            const geom = feat.geometry;
+            if (!geom) return;
+            const lineName = feat.properties?.Name || feat.properties?.name || `Line #${lineIdx + 1}`;
+            let lineCoordsList = [];
+            if (geom.type === 'LineString') lineCoordsList.push(geom.coordinates);
+            else if (geom.type === 'MultiLineString') lineCoordsList.push(...geom.coordinates);
+
+            lineCoordsList.forEach((coords) => {
+                if (!Array.isArray(coords) || coords.length < 2) return;
+                for (let i = 0; i < coords.length; i++) {
+                    const lon = coords[i][0];
+                    const lat = coords[i][1];
+                    const ele = coords[i][2] !== undefined ? coords[i][2] : null;
+
+                    let bendType = 'Vertex Point';
+                    let deflectionAngle = 0;
+                    let turnDirection = '';
+
+                    if (i === 0) bendType = 'Line Start Point';
+                    else if (i === coords.length - 1) bendType = 'Line End Point';
+                    else {
+                        const pPrev = coords[i - 1];
+                        const pCurr = coords[i];
+                        const pNext = coords[i + 1];
+                        const b1 = this.calculateBearing(pPrev[1], pPrev[0], pCurr[1], pCurr[0]);
+                        const b2 = this.calculateBearing(pCurr[1], pCurr[0], pNext[1], pNext[0]);
+                        let diff = b2 - b1;
+                        if (diff > 180) diff -= 360;
+                        if (diff < -180) diff += 360;
+                        deflectionAngle = Math.abs(diff);
+                        turnDirection = diff > 0 ? 'Right Turn' : 'Left Turn';
+                        bendType = deflectionAngle > 3 ? `${deflectionAngle.toFixed(1)}° ${turnDirection} Bend` : 'Tangent Point';
+                    }
+
+                    bendCount++;
+                    const bendFeat = {
+                        type: 'Feature',
+                        geometry: { type: 'Point', coordinates: ele !== null ? [lon, lat, ele] : [lon, lat] },
+                        properties: {
+                            Name: `Bend #${bendCount} (${bendType})`,
+                            LineName: lineName,
+                            BendNumber: bendCount,
+                            PointIndex: i + 1,
+                            BendType: bendType,
+                            Latitude: lat,
+                            Longitude: lon,
+                            Elevation_m: ele !== null ? ele : 'N/A',
+                            DeflectionAngle_deg: deflectionAngle.toFixed(1),
+                            TurnDirection: turnDirection || 'Straight',
+                            Folder: folderName,
+                            folder: folderName
+                        }
+                    };
+                    this.attachLLDToFeature(bendFeat);
+                    bendFeatures.push(bendFeat);
+                }
+            });
+        });
+
+        return { type: 'FeatureCollection', name: `${folderName}_Vertices`, features: bendFeatures };
     }
 
     escapeXml(unsafe) {
