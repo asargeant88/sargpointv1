@@ -1547,6 +1547,73 @@ document.addEventListener('DOMContentLoaded', () => {
     userProfileBadge?.addEventListener('click', () => openModal(authModal));
     document.getElementById('railApi')?.addEventListener('click', () => openModal(apiModal));
 
+    // Auth Modal Email & Google Sign In Handlers
+    document.getElementById('loginEmailBtn')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('authEmail')?.value.trim();
+        const password = document.getElementById('authPassword')?.value.trim();
+
+        if (!email || !password) {
+            showToast('Please enter both email address and password.');
+            return;
+        }
+
+        try {
+            const btn = document.getElementById('loginEmailBtn');
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            const res = await fetch('api/auth.php?action=login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            btn.disabled = false;
+            btn.textContent = 'Sign In with Email';
+
+            if (data.success) {
+                closeModal(authModal);
+                showToast(`Welcome back, ${data.user.name}!`);
+                await checkAuthStatus();
+            } else {
+                showToast(data.message || 'Invalid email address or password.');
+            }
+        } catch(err) {
+            showToast('Connection error during sign in.');
+            const btn = document.getElementById('loginEmailBtn');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Sign In with Email';
+            }
+        }
+    });
+
+    document.getElementById('loginGoogleBtn')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const demoGoogleId = 'google_user_' + Math.floor(Math.random() * 100000);
+        const demoEmail = document.getElementById('authEmail')?.value.trim() || 'google_user@sargpoint.com';
+        const demoName = 'Google Account User';
+
+        try {
+            const res = await fetch('api/auth.php?action=google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ google_id: demoGoogleId, email: demoEmail, name: demoName })
+            });
+            const data = await res.json();
+            if (data.success) {
+                closeModal(authModal);
+                showToast(`Signed in with Google as ${data.user.name}!`);
+                await checkAuthStatus();
+            } else {
+                showToast(data.message || 'Google Sign-In failed.');
+            }
+        } catch(err) {
+            showToast('Connection error during Google sign in.');
+        }
+    });
+
     billingBtn?.addEventListener('click', () => {
         if (!currentUser) {
             showToast('Please sign in to view billing & invoices.');
