@@ -54,14 +54,7 @@ if ($action === 'view_invoice') {
     exit;
 }
 
-// Ensure user is authenticated for API actions below
-$user = getCurrentUser();
-if (!$user) {
-    echo json_encode(['success' => false, 'message' => 'Authentication required. Please sign in first.']);
-    exit;
-}
-
-// 3. Create Stripe Checkout Session / Order Specs
+// 2. Create Stripe Checkout Session / Order Specs (Public access for rendering buy buttons)
 if ($action === 'create_stripe_session') {
     $input = json_decode(file_get_contents('php://input'), true) ?? $_GET;
     $plan = strtolower($input['plan'] ?? 'starter');
@@ -76,55 +69,11 @@ if ($action === 'create_stripe_session') {
     $unitPrice = ($cycle === 'yearly') ? $planConfig['yearly_price'] : $planConfig['monthly_price'];
     $totalAmount = ($cycle === 'yearly') ? $unitPrice * 12 : $unitPrice;
     
-    // If real Stripe Secret Key is configured, attempt Stripe API Checkout Session creation via cURL
-    $stripeSessionId = null;
-    $stripeCheckoutUrl = null;
-    
-    if (defined('STRIPE_SECRET_KEY') && strpos(STRIPE_SECRET_KEY, 'sk_live_') === 0) {
-        $ch = curl_init('https://api.stripe.com/v1/checkout/sessions');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_USERPWD, STRIPE_SECRET_KEY . ':');
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
-            'payment_method_types' => ['card'],
-            'client_reference_id' => $user['id'],
-            'line_items' => [[
-                'price_data' => [
-                    'currency' => 'usd',
-                    'product_data' => [
-                        'name' => 'Sargpoint GIS ' . ucfirst($plan) . ' Plan (' . ucfirst($cycle) . ')',
-                        'description' => 'Spatial format conversions, CRS projections, and API access'
-                    ],
-                    'unit_amount' => intval($totalAmount * 100)
-                ],
-                'quantity' => 1
-            ]],
-            'mode' => 'payment',
-            'success_url' => 'http://' . $_SERVER['HTTP_HOST'] . '/?payment=success&session_id={CHECKOUT_SESSION_ID}',
-            'cancel_url' => 'http://' . $_SERVER['HTTP_HOST'] . '/?payment=cancel',
-            'metadata' => [
-                'user_id' => $user['id'],
-                'plan' => $plan,
-                'billing_cycle' => $cycle
-            ]
-        ]));
-        $response = curl_exec($ch);
-        curl_close($ch);
-        
-        $sessionData = json_decode($response, true);
-        if (isset($sessionData['id'])) {
-            $stripeSessionId = $sessionData['id'];
-            $stripeCheckoutUrl = $sessionData['url'];
-        }
-    }
-    
     $buyButtonId = ($cycle === 'yearly') ? ($planConfig['stripe_buy_btn_yearly'] ?? '') : ($planConfig['stripe_buy_btn_monthly'] ?? '');
 
     echo json_encode([
         'success' => true,
         'stripe_publishable_key' => STRIPE_PUBLISHABLE_KEY,
-        'stripe_session_id' => $stripeSessionId,
-        'stripe_checkout_url' => $stripeCheckoutUrl,
         'buy_button_id' => $buyButtonId,
         'plan' => $plan,
         'plan_name' => $planConfig['name'],
@@ -134,6 +83,13 @@ if ($action === 'create_stripe_session') {
         'currency' => CURRENCY_CODE,
         'currency_symbol' => CURRENCY_SYMBOL
     ]);
+    exit;
+}
+
+// Ensure user is authenticated for user-specific actions below
+$user = getCurrentUser();
+if (!$user) {
+    echo json_encode(['success' => false, 'message' => 'Authentication required. Please sign in first.']);
     exit;
 }
 

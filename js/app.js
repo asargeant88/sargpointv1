@@ -1362,7 +1362,10 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerFormatExportWithFormat(currentGeoJSON, selectedFormat);
     });
 
-    downloadBtn?.addEventListener('click', () => convertBtn.click());
+    pricingBtn?.addEventListener('click', () => openModal(pricingModal));
+    document.getElementById('railPricing')?.addEventListener('click', () => openModal(pricingModal));
+    userProfileBadge?.addEventListener('click', () => openModal(authModal));
+    document.getElementById('railApi')?.addEventListener('click', () => openModal(apiModal));
 
     billingBtn?.addEventListener('click', () => {
         if (!currentUser) {
@@ -1377,42 +1380,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnChangePlanFromBilling')?.addEventListener('click', () => {
         closeModal(billingModal);
         openModal(pricingModal);
-    });
-
-    // Checkout Tab Switcher (PayPal vs Credit Card)
-    const tabPayPal = document.getElementById('tabPayPal');
-    const tabCreditCard = document.getElementById('tabCreditCard');
-    const paypalTabContent = document.getElementById('paypalTabContent');
-    const cardTabContent = document.getElementById('cardTabContent');
-
-    tabPayPal?.addEventListener('click', () => {
-        tabPayPal.classList.add('active');
-        tabPayPal.style.borderBottom = '2px solid #2563eb';
-        tabPayPal.style.color = '#2563eb';
-        tabPayPal.style.fontWeight = '700';
-        
-        tabCreditCard.classList.remove('active');
-        tabCreditCard.style.borderBottom = 'none';
-        tabCreditCard.style.color = '#64748b';
-        tabCreditCard.style.fontWeight = '600';
-
-        paypalTabContent.style.display = 'block';
-        cardTabContent.style.display = 'none';
-    });
-
-    tabCreditCard?.addEventListener('click', () => {
-        tabCreditCard.classList.add('active');
-        tabCreditCard.style.borderBottom = '2px solid #2563eb';
-        tabCreditCard.style.color = '#2563eb';
-        tabCreditCard.style.fontWeight = '700';
-
-        tabPayPal.classList.remove('active');
-        tabPayPal.style.borderBottom = 'none';
-        tabPayPal.style.color = '#64748b';
-        tabPayPal.style.fontWeight = '600';
-
-        paypalTabContent.style.display = 'none';
-        cardTabContent.style.display = 'block';
     });
 
     document.querySelectorAll('.modal-close').forEach(btn => {
@@ -1430,13 +1397,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.selectPlan = async function(planName) {
-        if (!currentUser) {
-            showToast('Please sign in first.');
-            closeModal(pricingModal);
-            openModal(authModal);
-            return;
-        }
-
         currentCheckoutPlan = planName;
         const cycle = isYearlyBilling ? 'yearly' : 'monthly';
 
