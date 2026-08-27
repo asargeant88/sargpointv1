@@ -1592,6 +1592,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Official Google OAuth 2.0 Credential Response Callback
+    window.handleGoogleCredentialResponse = async function(response) {
+        try {
+            const idToken = response.credential;
+            const base64Url = idToken.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+            const payload = JSON.parse(jsonPayload);
+
+            const googleId = payload.sub;
+            const email = payload.email;
+            const name = payload.name || payload.email.split('@')[0];
+            const avatar = payload.picture || '';
+
+            const res = await fetch('api/auth.php?action=google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    google_id: googleId,
+                    email: email,
+                    name: name,
+                    avatar_url: avatar,
+                    id_token: idToken
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                closeModal(authModal);
+                showToast(`Signed in with Google as ${data.user.name}!`);
+                await checkAuthStatus();
+            } else {
+                showToast(data.message || 'Google authentication failed.');
+            }
+        } catch(e) {
+            showToast('Error processing Google OAuth sign in.');
+        }
+    };
+
     document.getElementById('loginGoogleBtn')?.addEventListener('click', async (e) => {
         e.preventDefault();
         const demoGoogleId = 'google_user_' + Math.floor(Math.random() * 100000);
