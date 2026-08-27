@@ -222,6 +222,10 @@ $currentUser = getCurrentUser();
                         <svg class="svg-icon" viewBox="0 0 24 24" style="fill:#2563eb;"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
                         Save to Profile
                     </button>
+                    <button class="btn btn-outline" id="spreadsheetBtn">
+                        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H5v-4h4v4zm0-6H5V7h4v4zm6 6h-4v-4h4v4zm0-6h-4V7h4v4zm5 6h-4v-4h1v-2h-1V7h4v10z"/></svg>
+                        Spreadsheet View
+                    </button>
                 </div>
 
                 <!-- Drag & Drop Zone -->
@@ -785,6 +789,73 @@ $currentUser = getCurrentUser();
         </div>
     </div>
 
+    <!-- MODAL 4: Configurable Spreadsheet Data Grid Modal -->
+    <div class="modal-overlay" id="spreadsheetModal">
+        <div class="modal-container" style="max-width:1150px;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="spreadsheetTitle">Editable Spreadsheet Data Grid</h3>
+                    <p class="drawer-subtitle" id="spreadsheetSubtitle">Configure properties, edit cells, or export selected features with elevations & Legal Land Descriptions</p>
+                </div>
+                <span class="modal-close"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span>
+            </div>
+
+            <div class="modal-body" style="padding:1.2rem 1.5rem;">
+                <!-- Spreadsheet Grid Toolbar Controls -->
+                <div class="spreadsheet-toolbar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem 1rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                        <button class="btn btn-primary" id="saveSpreadsheetBtn" style="padding:0.4rem 0.8rem; font-size:0.8rem;">
+                            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                            Save Changes
+                        </button>
+                        <button class="btn btn-outline" id="fetchElevationsBtn" style="padding:0.4rem 0.8rem; font-size:0.8rem;">
+                            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 6l-3.75 5 2.85 3.8-1.6 1.2C9.81 13.75 7 10 7 10l-6 8h22L14 6z"/></svg>
+                            Fetch Terrain Elevations
+                        </button>
+                        <button class="btn btn-outline" id="addColumnBtn" style="padding:0.4rem 0.8rem; font-size:0.8rem;">
+                            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                            Add Column
+                        </button>
+                        <button class="btn btn-outline" id="addRowBtn" style="padding:0.4rem 0.8rem; font-size:0.8rem;">
+                            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                            Add Row
+                        </button>
+                    </div>
+
+                    <!-- Multi-Format Export Options for Spreadsheet Rows -->
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                        <select id="spreadsheetExportFormatSelect" class="form-control" style="width:160px; padding:0.4rem; font-size:0.8rem;">
+                            <option value="csv">CSV Spreadsheet (Elevations & LLD)</option>
+                            <option value="shp">Shapefile (.shp zip)</option>
+                            <option value="kmz">KMZ (Google Earth 3D)</option>
+                            <option value="kml">KML (Google Earth 3D)</option>
+                            <option value="gpx">GPX (GPS Track & Ele)</option>
+                            <option value="spatialite">SQLite / SpatiaLite</option>
+                            <option value="parquet">Parquet / GeoParquet</option>
+                            <option value="geojson">GeoJSON (.geojson)</option>
+                            <option value="dxf">DXF (AutoCAD 3D)</option>
+                            <option value="gpkg">GPKG (GeoPackage)</option>
+                            <option value="wkt">WKT 3D Text</option>
+                        </select>
+                        <button class="btn btn-primary" id="exportSelectedBtn" style="padding:0.4rem 0.8rem; font-size:0.8rem;">
+                            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                            <span id="exportSelectedBtnText">Export Selected</span>
+                        </button>
+                        <button class="btn btn-outline" id="exportAllAnyFormatBtn" style="padding:0.4rem 0.8rem; font-size:0.8rem;">Export All</button>
+                    </div>
+                </div>
+
+                <!-- Spreadsheet Grid Table Container -->
+                <div class="spreadsheet-grid-wrapper" style="overflow-x:auto; max-height:480px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px;">
+                    <table class="spreadsheet-table" style="width:100%; border-collapse:collapse;">
+                        <thead id="spreadsheetHead" style="position:sticky; top:0; background:#f1f5f9; z-index:2;"></thead>
+                        <tbody id="spreadsheetBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL 13: Admin Control Area & Analytics Dashboard Modal -->
     <div class="modal-overlay" id="adminModal">
         <div class="modal-container" style="max-width:1050px;">
@@ -909,7 +980,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=1.9.0"></script>
-    <script src="js/app.js?v=1.9.0"></script>
+    <script src="js/converter.js?v=2.0.0"></script>
+    <script src="js/app.js?v=2.0.0"></script>
 </body>
 </html>

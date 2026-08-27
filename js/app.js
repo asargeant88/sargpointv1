@@ -1530,6 +1530,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    function openSpreadsheetGrid() {
+        if (!currentGeoJSON) {
+            showToast('Please upload or select a spatial dataset first to open the spreadsheet grid.');
+            return;
+        }
+        renderSpreadsheetGridModal(currentGeoJSON);
+    }
+
+    document.getElementById('spreadsheetBtn')?.addEventListener('click', openSpreadsheetGrid);
+    document.getElementById('railSpreadsheetNav')?.addEventListener('click', openSpreadsheetGrid);
+    document.getElementById('openSpreadsheetGridBtn')?.addEventListener('click', openSpreadsheetGrid);
+
     pricingBtn?.addEventListener('click', () => openModal(pricingModal));
     document.getElementById('railPricing')?.addEventListener('click', () => openModal(pricingModal));
     userProfileBadge?.addEventListener('click', () => openModal(authModal));
