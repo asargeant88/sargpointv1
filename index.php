@@ -10,12 +10,12 @@ $currentUser = getCurrentUser();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sargpoint GIS Workspace & Projection Converter</title>
     <meta name="description" content="SaaS GIS Data Workspace & Projection Converter for Shapefile, GeoJSON, KMZ, KML, GPX, DXF, SpatiaLite, and GeoParquet. Convert EPSG projections, fetch 3D DEM elevations, and query Legal Land Descriptions (DLS).">
-    <meta name="keywords" content="GIS converter, projection converter, EPSG lookup, Shapefile to GeoJSON, KML to KMZ, GPX to CSV, DXF 3D converter, GeoParquet, SpatiaLite, Legal Land Description DLS, Open-Elevation DEM, NAD83, WGS84, UTM Zone 11N, UTM Zone 12N, UTM Zone 13N, Alberta 10TM, EPSG 3400, EPSG 4326, EPSG 3857, EPSG 26911, EPSG 26912">
+    <meta name="keywords" content="GIS converter, projection converter, EPSG lookup, Shapefile to GeoJSON, KML to KMZ, GPX to CSV, DXF 3D converter, GeoParquet, SpatiaLite, GeoPackage, Legal Land Description DLS, Open-Elevation DEM, NAD83, WGS84, UTM Zone 10N, UTM Zone 11N, UTM Zone 12N, UTM Zone 13N, UTM Zone 14N, Alberta 10TM, EPSG 3400, EPSG 4326, EPSG 3857, EPSG 4269, EPSG 26911, EPSG 26912, EPSG 26913, EPSG 27700, EPSG 2154, EPSG 2227, EPSG 2277, EPSG 32119, State Plane coordinate system, reprojection engine, datum transformation, WKT well-known text">
     <meta name="author" content="Sargpoint GIS Systems">
 
     <!-- Open Graph & Social Cards -->
     <meta property="og:title" content="Sargpoint GIS Workspace & Projection Converter">
-    <meta property="og:description" content="Online GIS data converter, coordinate projection transformer, and 3D elevation spreadsheet tool.">
+    <meta property="og:description" content="Online GIS data converter, coordinate projection transformer, and 3D elevation spreadsheet tool for Shapefiles, GeoJSON, KML/KMZ, GPX, DXF, SpatiaLite, and GeoParquet.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://sargpoint.com/">
     
@@ -33,7 +33,7 @@ $currentUser = getCurrentUser();
         "lowPrice": "0",
         "highPrice": "45"
       },
-      "description": "Professional Web GIS converter for ESRI Shapefiles, GeoJSON, KML/KMZ, GPX, AutoCAD DXF, SpatiaLite, and GeoParquet with 100+ EPSG coordinate projections."
+      "description": "Professional Web GIS converter for ESRI Shapefiles, GeoJSON, KML/KMZ, GPX, AutoCAD DXF, SpatiaLite, and GeoParquet with 100+ EPSG coordinate projections and State Plane systems."
     }
     </script>
     
@@ -141,29 +141,57 @@ $currentUser = getCurrentUser();
                 <div class="search-location-group">
                     <input type="text" class="search-input" id="searchInput" list="gisSearchTerms" placeholder="Search EPSG codes, locations, formats, DLS...">
                     <datalist id="gisSearchTerms">
+                        <!-- Popular Global & North American EPSG Projections -->
                         <option value="EPSG:4326 - WGS 84 (GPS Geographic Lat/Lon)">
-                        <option value="EPSG:3857 - Web Mercator (Google Maps Standard)">
-                        <option value="EPSG:3400 - NAD83 / Alberta 10-TM">
-                        <option value="EPSG:26911 - NAD83 / UTM Zone 11N">
-                        <option value="EPSG:26912 - NAD83 / UTM Zone 12N">
-                        <option value="EPSG:26913 - NAD83 / UTM Zone 13N">
-                        <option value="EPSG:4269 - NAD83 Geographic">
-                        <option value="EPSG:27700 - OSGB36 / British National Grid">
-                        <option value="EPSG:2154 - RGF93 / Lambert-93 France">
-                        <option value="Shapefile (.shp zip export)">
-                        <option value="GeoJSON (.geojson format)">
-                        <option value="KMZ / KML (Google Earth 3D)">
-                        <option value="GPX (GPS Tracks & Elevation)">
-                        <option value="DXF (AutoCAD 3D CAD Drawing)">
+                        <option value="EPSG:3857 - WGS 84 / Web Mercator (Google Maps Standard)">
+                        <option value="EPSG:4269 - NAD83 Geographic (North America Datum 1983)">
+                        <option value="EPSG:3400 - NAD83 / Alberta 10-TM (Resource Surveying)">
+                        <option value="EPSG:26910 - NAD83 / UTM Zone 10N (Pacific Coast / WA / OR)">
+                        <option value="EPSG:26911 - NAD83 / UTM Zone 11N (BC / Alberta West / WA / ID)">
+                        <option value="EPSG:26912 - NAD83 / UTM Zone 12N (Alberta East / UT / MT / WY)">
+                        <option value="EPSG:26913 - NAD83 / UTM Zone 13N (Saskatchewan / CO / NM / ND)">
+                        <option value="EPSG:26914 - NAD83 / UTM Zone 14N (Manitoba / TX / OK / KS / NE)">
+                        <option value="EPSG:26915 - NAD83 / UTM Zone 15N (Ontario / MN / IA / MO / AR)">
+                        
+                        <!-- State Plane Coordinate Reference Systems -->
+                        <option value="EPSG:2227 - NAD83 / California Zone 3 (US State Plane Feet)">
+                        <option value="EPSG:2277 - NAD83 / Texas Central (US State Plane Feet)">
+                        <option value="EPSG:32119 - NAD83 / New York Central (US State Plane Meters)">
+                        <option value="EPSG:2236 - NAD83 / Florida East (US State Plane Feet)">
+
+                        <!-- International & Regional Projections -->
+                        <option value="EPSG:27700 - OSGB36 / British National Grid (UK)">
+                        <option value="EPSG:2154 - RGF93 / Lambert-93 (France)">
+                        <option value="EPSG:25832 - ETRS89 / UTM Zone 32N (Germany / Central Europe)">
+                        <option value="EPSG:7855 - GDA2020 / MGA Zone 55 (Australia)">
+                        <option value="EPSG:3112 - GDA94 / Geoscience Australia Lambert">
+
+                        <!-- Spatial File Format Conversion Shortcuts -->
+                        <option value="Shapefile (.shp zip package export)">
+                        <option value="GeoJSON (.geojson standard format)">
+                        <option value="KMZ / KML (Google Earth 3D overlays)">
+                        <option value="GPX (GPS Tracks, Routes & Elevation)">
+                        <option value="DXF (AutoCAD 3D CAD Vector Drawing)">
                         <option value="SpatiaLite (.sqlite spatial database)">
-                        <option value="GeoParquet (.parquet columnar format)">
-                        <option value="Legal Land Description (DLS Township, Range, Section)">
+                        <option value="GeoParquet (.parquet columnar data engine)">
+                        <option value="GeoPackage (.gpkg OGC spatial container)">
+                        <option value="WKT (Well-Known Text 3D Geometry)">
+
+                        <!-- Cadastral, Land & DEM Elevation Operations -->
+                        <option value="Legal Land Description (DLS Township, Range, Section, Meridian)">
                         <option value="Open-Elevation DEM 3D Terrain Query">
+                        <option value="Datum Shift & Grid Transformation (WGS84 / NAD83)">
+                        <option value="Easting & Northing Coordinate Converter">
+
+                        <!-- Major Reference Cities -->
                         <option value="Calgary, Alberta, Canada">
                         <option value="Edmonton, Alberta, Canada">
                         <option value="Vancouver, BC, Canada">
+                        <option value="Toronto, Ontario, Canada">
                         <option value="Houston, Texas, USA">
                         <option value="Denver, Colorado, USA">
+                        <option value="London, United Kingdom">
+                        <option value="Sydney, Australia">
                     </datalist>
                 </div>
 
@@ -1057,7 +1085,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=3.0.0"></script>
-    <script src="js/app.js?v=3.0.0"></script>
+    <script src="js/converter.js?v=3.1.0"></script>
+    <script src="js/app.js?v=3.1.0"></script>
 </body>
 </html>
