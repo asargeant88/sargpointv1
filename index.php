@@ -141,7 +141,7 @@ $currentUser = getCurrentUser();
                     </button>
                     <button class="btn btn-outline" id="topbarAdminBtn" style="display:none; border-color:#ea580c; color:#ea580c; background:#fff7ed; font-weight:700;">
                         <svg class="svg-icon" viewBox="0 0 24 24" style="fill:#ea580c;"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
-                        👑 Admin Portal
+                        Admin Portal
                     </button>
                     <div class="user-profile-badge" id="userProfileBadge">
                         <div class="avatar-icon">
@@ -910,7 +910,7 @@ $currentUser = getCurrentUser();
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
                         <h4 style="font-size:1rem; font-weight:700; color:#1e293b;">Registered Users & Plan Overrides</h4>
                         <button class="btn btn-outline" id="btnRefreshAdminData" style="padding:4px 10px; font-size:0.78rem;">
-                            🔄 Refresh Data
+                            Refresh Data
                         </button>
                     </div>
 
@@ -984,7 +984,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=2.3.0"></script>
-    <script src="js/app.js?v=2.3.0"></script>
+    <script src="js/converter.js?v=2.4.0"></script>
+    <script src="js/app.js?v=2.4.0"></script>
 </body>
 </html>

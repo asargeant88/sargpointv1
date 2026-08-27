@@ -589,7 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (currentUser) {
             document.getElementById('userName').textContent = currentUser.name;
-            document.getElementById('userRole').textContent = (currentUser.is_admin == 1 ? '👑 ADMIN - ' : '') + currentUser.plan.toUpperCase() + ' Plan';
+            document.getElementById('userRole').textContent = (currentUser.is_admin == 1 ? 'ADMIN - ' : '') + currentUser.plan.toUpperCase() + ' Plan';
             
             // Show Admin Icon Rail & Topbar Buttons if user is admin
             const isAdminUser = (currentUser.is_admin == 1);
@@ -1765,7 +1765,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <td style="padding:10px; font-size:0.78rem; color:#64748b;">${new Date(t.updated_at).toLocaleDateString()} ${new Date(t.updated_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
                                 <td style="padding:10px; text-align:center;">
                                     <button class="btn btn-outline btn-view-ticket" data-id="${t.id}" style="padding:3px 8px; font-size:0.75rem; font-weight:600;">
-                                        View Thread 💬 (${t.reply_count || 0})
+                                        View Thread (${t.reply_count || 0})
                                     </button>
                                 </td>
                             </tr>
@@ -1965,7 +1965,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td style="padding:10px; text-align:center;"><span style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600; text-transform:uppercase;">${inv.gateway}</span></td>
                         <td style="padding:10px; text-align:center;">
                             <a href="api/payment.php?action=view_invoice&invoice_number=${inv.invoice_number}" target="_blank" class="btn btn-outline" style="padding:3px 8px; font-size:0.75rem; font-weight:600; border-radius:4px;">
-                                Receipt 📄
+                                Receipt
                             </a>
                         </td>
                     </tr>
