@@ -502,49 +502,13 @@ $currentUser = getCurrentUser();
                     </div>
                 </div>
 
-                <!-- Stripe Hosted Checkout Redirect Button (if live API key configured) -->
-                <div id="stripeHostedCheckoutBox" style="display:none; margin-bottom:1.2rem;">
-                    <button class="btn btn-primary" id="btnStripeHostedCheckout" style="width:100%; padding:0.85rem; font-size:1rem; font-weight:700; background:#635bff; border-color:#635bff; display:flex; align-items:center; justify-content:center; gap:8px;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff"><path d="M13.98 11.07c-1.3-.32-2.31-.62-2.31-1.32 0-.6.53-.98 1.48-.98 1.5 0 2.87.6 3.66 1.13l.83-2.12c-.93-.65-2.52-1.12-4.49-1.12-3.1 0-5.18 1.6-5.18 4.09 0 3.84 5.3 3.25 5.3 4.93 0 .76-.69 1.08-1.74 1.08-1.75 0-3.32-.77-4.27-1.42l-.84 2.18c1.12.78 3.12 1.34 5.11 1.34 3.26 0 5.46-1.55 5.46-4.14 0-4.04-5.3-3.32-5.3-4.83z"/></svg>
-                        Proceed to Official Stripe Checkout
-                    </button>
-                </div>
-
                 <!-- Live Official Stripe Buy Button Container -->
-                <div id="stripeBuyButtonContainer" style="margin-bottom:1.5rem; display:flex; justify-content:center; width:100%;"></div>
-
-                <!-- Credit/Debit Card Form (Stripe Card Gateway) -->
-                <form id="customCardForm">
-                    <div style="font-weight:700; font-size:0.88rem; color:#334155; margin-bottom:0.75rem; display:flex; align-items:center; gap:6px;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#635bff"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
-                        Stripe Card Payment Details
-                    </div>
-                    <div class="form-group" style="margin-bottom:0.8rem;">
-                        <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">Cardholder Name</label>
-                        <input type="text" class="form-control" id="cardNameInput" placeholder="John Doe" required style="padding:0.55rem; width:100%;">
-                    </div>
-                    <div class="form-group" style="margin-bottom:0.8rem;">
-                        <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">Card Number</label>
-                        <input type="text" class="form-control" id="cardNumberInput" placeholder="4242 •••• •••• 4242" maxlength="19" required style="padding:0.55rem; width:100%;">
-                    </div>
-                    <div style="display:flex; gap:0.8rem; margin-bottom:1.2rem;">
-                        <div style="flex:1;">
-                            <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">Expiry (MM/YY)</label>
-                            <input type="text" class="form-control" id="cardExpiryInput" placeholder="12/28" maxlength="5" required style="padding:0.55rem; width:100%;">
-                        </div>
-                        <div style="flex:1;">
-                            <label style="font-size:0.8rem; font-weight:600; margin-bottom:4px; display:block;">CVC / CVV</label>
-                            <input type="text" class="form-control" id="cardCvcInput" placeholder="382" maxlength="4" required style="padding:0.55rem; width:100%;">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary" id="btnSubmitCardPayment" style="width:100%; padding:0.75rem; font-size:0.95rem; font-weight:700; background:#635bff; border-color:#635bff;">
-                        Pay <span id="cardPayAmount">$20.00</span> & Activate Plan
-                    </button>
-                    <div style="font-size:0.72rem; color:#94a3b8; text-align:center; margin-top:0.6rem; display:flex; align-items:center; justify-content:center; gap:4px;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="#94a3b8"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-                        Encrypted 256-Bit SSL Stripe Security
-                    </div>
-                </form>
+                <div id="stripeBuyButtonContainer" style="margin:1rem 0; display:flex; justify-content:center; align-items:center; width:100%; min-height:80px;"></div>
+                
+                <div style="font-size:0.75rem; color:#94a3b8; text-align:center; margin-top:1rem; display:flex; align-items:center; justify-content:center; gap:5px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#635bff"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                    Official Stripe 256-Bit SSL Encrypted Checkout
+                </div>
             </div>
         </div>
     </div>
@@ -639,7 +603,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=1.4.1"></script>
-    <script src="js/app.js?v=1.4.1"></script>
+    <script src="js/converter.js?v=1.5.0"></script>
+    <script src="js/app.js?v=1.5.0"></script>
 </body>
 </html>

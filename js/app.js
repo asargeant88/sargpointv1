@@ -1453,21 +1453,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('checkoutPlanName').textContent = `${data.plan_name} Plan`;
             document.getElementById('checkoutBillingCycle').textContent = (cycle === 'yearly') ? `Billed Yearly ($${data.unit_price}/mo)` : `Billed Monthly ($${data.unit_price}/mo)`;
             document.getElementById('checkoutTotalAmount').textContent = `$${data.total_amount.toFixed(2)}`;
-            document.getElementById('cardPayAmount').textContent = `$${data.total_amount.toFixed(2)}`;
             document.getElementById('checkoutDiscountBadge').textContent = (cycle === 'yearly') ? '50% Discount Applied' : 'Active Rate';
-
-            // Show Hosted Stripe Checkout button if URL available
-            const hostedBox = document.getElementById('stripeHostedCheckoutBox');
-            if (hostedBox) {
-                if (data.stripe_checkout_url) {
-                    hostedBox.style.display = 'block';
-                    document.getElementById('btnStripeHostedCheckout').onclick = () => {
-                        window.location.href = data.stripe_checkout_url;
-                    };
-                } else {
-                    hostedBox.style.display = 'none';
-                }
-            }
 
             // Render Live Official Stripe Buy Button if buy_button_id available
             const buyBtnContainer = document.getElementById('stripeBuyButtonContainer');
@@ -1481,8 +1467,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                     buyBtnContainer.style.display = 'flex';
                 } else {
-                    buyBtnContainer.innerHTML = '';
-                    buyBtnContainer.style.display = 'none';
+                    buyBtnContainer.innerHTML = '<div style="color:#dc2626; font-size:0.85rem; padding:10px;">Stripe Buy Button not configured for this plan.</div>';
+                    buyBtnContainer.style.display = 'flex';
                 }
             }
 
@@ -1492,50 +1478,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Checkout connection error.');
         }
     };
-
-    // Stripe Credit Card Form Submission
-    document.getElementById('customCardForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const cardName = document.getElementById('cardNameInput').value;
-        const cardNumber = document.getElementById('cardNumberInput').value;
-        const cardExpiry = document.getElementById('cardExpiryInput').value;
-        const cardCvc = document.getElementById('cardCvcInput').value;
-
-        if (!cardNumber || cardNumber.length < 12) {
-            showToast('Please enter a valid card number.');
-            return;
-        }
-
-        try {
-            const btn = document.getElementById('btnSubmitCardPayment');
-            if (btn) btn.disabled = true;
-
-            const res = await fetch('api/payment.php?action=process_stripe_payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    plan: currentCheckoutPlan,
-                    billing_cycle: isYearlyBilling ? 'yearly' : 'monthly',
-                    card_name: cardName,
-                    card_number: cardNumber,
-                    card_expiry: cardExpiry,
-                    card_cvc: cardCvc
-                })
-            });
-            const data = await res.json();
-            if (btn) btn.disabled = false;
-
-            if (data.success) {
-                closeModal(checkoutModal);
-                showToast(`Stripe Payment Approved! Subscribed to ${currentCheckoutPlan.toUpperCase()} plan.`);
-                await checkAuthStatus();
-            } else {
-                showToast(data.message || 'Stripe card payment failed.');
-            }
-        } catch(err) {
-            showToast('Stripe card processing error.');
-        }
-    });
 
     // User Billing Portal Invoice Fetcher
     async function loadUserInvoices() {
