@@ -36,10 +36,10 @@ if ($action === 'save') {
 
     // Check Plan Quota
     $usage = getUserUsageMetrics($user['id'], $user['plan']);
-    if ($usage['upload_remaining_mb'] !== -1 && $fileSizeMb > $usage['upload_remaining_mb']) {
+    if (!$usage['can_convert']) {
         echo json_encode([
             'success' => false,
-            'message' => 'Monthly upload quota exceeded. Upgrade your plan to save larger datasets.'
+            'message' => !empty($usage['reason']) ? $usage['reason'] : 'Monthly upload quota exceeded. Upgrade your plan to save larger datasets.'
         ]);
         exit;
     }

@@ -427,6 +427,7 @@ $currentUser = getCurrentUser();
                 <div id="g_id_onload"
                      data-client_id="764516146058-9ruv55k2nd8f67gq9uprlg6mf9kbvj1b.apps.googleusercontent.com"
                      data-callback="handleGoogleCredentialResponse"
+                     data-use_fedcm_for_prompt="false"
                      data-auto_select="false">
                 </div>
 
@@ -1085,7 +1086,7 @@ $currentUser = getCurrentUser();
     <div id="toastContainer"></div>
 
     <!-- Application Controller Scripts -->
-    <script src="js/converter.js?v=3.3.0"></script>
-    <script src="js/app.js?v=3.3.0"></script>
+    <script src="js/converter.js?v=3.4.0"></script>
+    <script src="js/app.js?v=3.4.0"></script>
 </body>
 </html>
