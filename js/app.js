@@ -1588,7 +1588,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const dsName = (uploadedDatasets.length > 0 ? uploadedDatasets[0].name : 'Untitled Dataset').replace(/\.[^/.]+$/, "");
+        let rawName = 'Untitled Dataset';
+        if (Array.isArray(uploadedDatasets) && uploadedDatasets.length > 0 && uploadedDatasets[0] && uploadedDatasets[0].name) {
+            rawName = uploadedDatasets[0].name;
+        } else if (currentGeoJSON && currentGeoJSON.name) {
+            rawName = currentGeoJSON.name;
+        }
+        const dsName = String(rawName).replace(/\.[^/.]+$/, "");
         const fc = currentGeoJSON.features ? currentGeoJSON.features.length : 1;
         const sz = 0.5;
 
