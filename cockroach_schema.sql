@@ -45,7 +45,20 @@ CREATE TABLE IF NOT EXISTS usage_logs (
     converted_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
 );
 
--- 5. API Keys Table
+-- 5. User Saved Datasets Table
+CREATE TABLE IF NOT EXISTS user_datasets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    format VARCHAR(50) NOT NULL,
+    file_size_mb NUMERIC(10, 4) NOT NULL,
+    feature_count INT DEFAULT 0,
+    crs VARCHAR(100) DEFAULT 'EPSG:4326',
+    geojson_data TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+);
+
+-- 6. API Keys Table
 CREATE TABLE IF NOT EXISTS api_keys (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -43,6 +43,20 @@ function initDatabase() {
         FOREIGN KEY (user_id) REFERENCES users(id)
     )");
 
+    // User Saved Datasets table
+    $db->exec("CREATE TABLE IF NOT EXISTS user_datasets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        format TEXT NOT NULL,
+        file_size_mb REAL NOT NULL,
+        feature_count INTEGER DEFAULT 0,
+        crs TEXT DEFAULT 'EPSG:4326',
+        geojson_data TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )");
+
     // API Keys table
     $db->exec("CREATE TABLE IF NOT EXISTS api_keys (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

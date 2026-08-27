@@ -1362,6 +1362,58 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerFormatExportWithFormat(currentGeoJSON, selectedFormat);
     });
 
+    // Save Dataset to Profile (Logged-In User Only)
+    document.getElementById('btnSaveToProfile')?.addEventListener('click', async () => {
+        if (!currentUser) {
+            showToast('Sign in required to save spatial datasets to your profile.');
+            openModal(authModal);
+            return;
+        }
+
+        if (!currentGeoJSON) {
+            showToast('Please upload or generate a spatial dataset first.');
+            return;
+        }
+
+        const dsName = (uploadedDatasets.length > 0 ? uploadedDatasets[0].name : 'Untitled Dataset').replace(/\.[^/.]+$/, "");
+        const fc = currentGeoJSON.features ? currentGeoJSON.features.length : 1;
+        const sz = 0.5;
+
+        try {
+            const btn = document.getElementById('btnSaveToProfile');
+            if (btn) btn.disabled = true;
+
+            const res = await fetch('api/datasets.php?action=save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: dsName,
+                    format: selectedFormat,
+                    file_size_mb: sz,
+                    feature_count: fc,
+                    crs: selectedCRS,
+                    geojson_data: JSON.stringify(currentGeoJSON)
+                })
+            });
+            const data = await res.json();
+            if (btn) btn.disabled = false;
+
+            if (data.success) {
+                showToast(`Dataset '${dsName}' saved to your profile!`);
+                await checkAuthStatus();
+            } else {
+                if (data.require_auth) {
+                    showToast(data.message);
+                    openModal(authModal);
+                } else {
+                    showToast(data.message || 'Error saving dataset.');
+                }
+            }
+        } catch(e) {
+            showToast('Connection error while saving dataset.');
+        }
+    });
+
     pricingBtn?.addEventListener('click', () => openModal(pricingModal));
     document.getElementById('railPricing')?.addEventListener('click', () => openModal(pricingModal));
     userProfileBadge?.addEventListener('click', () => openModal(authModal));
