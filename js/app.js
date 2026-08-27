@@ -595,6 +595,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const isAdminUser = (currentUser.is_admin == 1);
             if (railAdmin) railAdmin.style.display = isAdminUser ? 'flex' : 'none';
             if (topbarAdmin) topbarAdmin.style.display = isAdminUser ? 'inline-flex' : 'none';
+            loadUserSavedProfileDatasets();
         } else {
             document.getElementById('userName').textContent = 'Sign In / Register';
             document.getElementById('userRole').textContent = 'Free Guest';
@@ -605,6 +606,99 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentUsage) {
             const filesText = currentUsage.max_files === -1 ? 'Unlimited' : `${currentUsage.used_files}/${currentUsage.max_files} files`;
             usageBadge.innerHTML = `Plan: <strong>${currentUsage.plan_name}</strong> | Used: <strong>${currentUsage.used_mb} MB</strong> (${filesText})`;
+        }
+    }
+
+    async function loadUserSavedProfileDatasets() {
+        if (!currentUser) return;
+        try {
+            const res = await fetch('api/datasets.php?action=list');
+            const data = await res.json();
+            const listEl = document.getElementById('datasetsList');
+            if (!listEl) return;
+
+            if (data.success && data.datasets && data.datasets.length > 0) {
+                const profileHtml = data.datasets.map(ds => `
+                    <div class="dataset-item" style="border-left:3px solid #2563eb; background:#ffffff; border-radius:6px; padding:8px 10px; margin-bottom:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-weight:700; font-size:0.83rem; color:#1e293b; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                ${escapeHtml(ds.name)}
+                            </div>
+                            <span style="font-size:0.68rem; background:#eff6ff; color:#2563eb; padding:1px 5px; border-radius:4px; font-weight:700;">
+                                ${ds.format}
+                            </span>
+                        </div>
+                        <div style="font-size:0.72rem; color:#64748b; margin-top:2px;">
+                            ${ds.feature_count} features • ${ds.crs || 'EPSG:4326'}
+                        </div>
+                        <div style="display:flex; gap:6px; margin-top:6px;">
+                            <button class="btn btn-outline btn-load-profile-ds" data-id="${ds.id}" style="padding:2px 6px; font-size:0.72rem; font-weight:600;">
+                                Load Dataset
+                            </button>
+                            <button class="btn btn-outline btn-delete-profile-ds" data-id="${ds.id}" style="padding:2px 6px; font-size:0.72rem; color:#dc2626; border-color:#fca5a5;">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                listEl.innerHTML = `<div style="font-size:0.75rem; font-weight:700; color:#475569; text-transform:uppercase; margin-bottom:8px;">Saved Profile Datasets (${data.datasets.length})</div>` + profileHtml;
+
+                document.querySelectorAll('.btn-load-profile-ds').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const id = e.currentTarget.getAttribute('data-id');
+                        await loadSavedProfileDatasetById(id);
+                    });
+                });
+
+                document.querySelectorAll('.btn-delete-profile-ds').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const id = e.currentTarget.getAttribute('data-id');
+                        if (confirm('Are you sure you want to remove this dataset from your profile?')) {
+                            await deleteSavedProfileDatasetById(id);
+                        }
+                    });
+                });
+            }
+        } catch(e) {
+            console.error('Error loading saved profile datasets:', e);
+        }
+    }
+
+    async function loadSavedProfileDatasetById(datasetId) {
+        try {
+            showToast('Loading saved dataset from profile...');
+            const res = await fetch(`api/datasets.php?action=get&id=${datasetId}`);
+            const data = await res.json();
+            if (data.success && data.dataset) {
+                const geojson = typeof data.dataset.geojson_data === 'string' ? JSON.parse(data.dataset.geojson_data) : data.dataset.geojson_data;
+                currentGeoJSON = geojson;
+                renderLayerToMap(geojson);
+                showToast(`Loaded dataset '${data.dataset.name}' to map!`);
+            } else {
+                showToast(data.message || 'Failed to load dataset.');
+            }
+        } catch(e) {
+            showToast('Error loading dataset.');
+        }
+    }
+
+    async function deleteSavedProfileDatasetById(datasetId) {
+        try {
+            const res = await fetch('api/datasets.php?action=delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: datasetId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast('Dataset deleted from profile.');
+                await loadUserSavedProfileDatasets();
+            } else {
+                showToast(data.message || 'Error deleting dataset.');
+            }
+        } catch(e) {
+            showToast('Connection error deleting dataset.');
         }
     }
 
@@ -1520,6 +1614,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.success) {
                 showToast(`Dataset '${dsName}' saved to your profile!`);
                 await checkAuthStatus();
+                await loadUserSavedProfileDatasets();
             } else {
                 if (data.require_auth) {
                     showToast(data.message);
