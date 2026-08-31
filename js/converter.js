@@ -53,6 +53,48 @@ class GISConverterEngine {
         return null;
     }
 
+    // Lightweight official LLD query - just gets section polygon and computes accurate LSD string
+    async getOfficialLLD(lat, lon) {
+        if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) return null;
+        // Only works for Canadian DLS coverage area (W1M through W7M)
+        if (lat < 48.99 || lat > 60 || lon > -95 || lon < -124) return null;
+
+        try {
+            const url = `https://geospatial.alberta.ca/titan/rest/services/base/alberta_township_system/MapServer/1/query?geometry=${lon},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&f=geojson`;
+            const res = await fetch(url).catch(() => null);
+            if (!res || !res.ok) return null;
+            const data = await res.json();
+            const feat = data?.features?.[0];
+            if (!feat || !feat.properties || !feat.geometry) return null;
+
+            const sec = feat.properties.SEC;
+            const twp = feat.properties.TWP;
+            const rge = feat.properties.RGE;
+            const mer = feat.properties.M;
+
+            // Compute LSD from section polygon geometry
+            const coords = feat.geometry.coordinates[0];
+            let sMinLat = 999, sMaxLat = -999, sMinLon = 999, sMaxLon = -999;
+            coords.forEach(c => {
+                if (c[1] < sMinLat) sMinLat = c[1]; if (c[1] > sMaxLat) sMaxLat = c[1];
+                if (c[0] < sMinLon) sMinLon = c[0]; if (c[0] > sMaxLon) sMaxLon = c[0];
+            });
+            const secFracY = Math.max(0, Math.min(0.9999, (lat - sMinLat) / (sMaxLat - sMinLat)));
+            const secFracX = Math.max(0, Math.min(0.9999, (sMaxLon - lon) / (sMaxLon - sMinLon)));
+            const lsdRow = Math.floor(secFracY * 4);
+            const lsdCol = Math.floor(secFracX * 4);
+            const lsdMatrix = [[1,2,3,4],[8,7,6,5],[9,10,11,12],[16,15,14,13]];
+            const lsd = lsdMatrix[lsdRow][lsdCol];
+
+            const qtrNames = [['SE','SW'],['NE','NW']];
+            const qtr = qtrNames[Math.floor(secFracY * 2)][Math.floor(secFracX * 2)];
+
+            return `LSD ${lsd}-${sec}-${String(twp).padStart(3,'0')}-${String(rge).padStart(2,'0')} W${mer}M`;
+        } catch (e) {
+            return null;
+        }
+    }
+
     // Convert Decimal Degrees to DMS string (Degrees Minutes Seconds)
     toDMS(val, isLat) {
         const absVal = Math.abs(val);
@@ -256,9 +298,9 @@ class GISConverterEngine {
         else if (lon > -122.0) { meridian = 6; merLon = -118.0; }
         else { meridian = 7; merLon = -122.0; }
 
-        // DLS 3rd System Calibrated Survey Grid Parameters
-        const latBaseline = 49.030066;
-        const twpLatSpan = 0.086736;
+        // DLS 3rd System Calibrated Survey Grid Parameters (1st Baseline @ 49.000000° N International Boundary)
+        const latBaseline = 49.000000;
+        const twpLatSpan = 0.087095;
 
         // Correction Line compensation (every 4 Townships / 24 miles)
         const twpRaw = (lat - latBaseline) / twpLatSpan;
@@ -388,24 +430,99 @@ class GISConverterEngine {
         };
     }
 
-    // Attach Legal Land Description to Feature Properties
+    // Attach Legal Land Description & Normalize Feature Point Names
     attachLLDToFeature(f) {
-        if (!f || !f.geometry || !f.geometry.coordinates) return f;
-        let lon = 0, lat = 0;
-        if (f.geometry.type === 'Point') {
-            lon = f.geometry.coordinates[0];
-            lat = f.geometry.coordinates[1];
-        } else if (f.geometry.type === 'LineString' || f.geometry.type === 'MultiPoint') {
-            lon = f.geometry.coordinates[0][0];
-            lat = f.geometry.coordinates[0][1];
-        } else if (f.geometry.type === 'Polygon') {
-            lon = f.geometry.coordinates[0][0][0];
-            lat = f.geometry.coordinates[0][0][1];
+        if (!f) return f;
+        if (!f.properties) f.properties = {};
+
+        // 1. Thoroughly resolve & normalize feature point name across all synonym keys
+        if (!f.properties.Name && !f.properties.name) {
+            const pointSynonyms = [
+                'name', 'title', 'label', 'station', 'site', 'id',
+                'pt', 'pnt', 'point', 'pointname', 'pointnum', 'pointno', 'pntname', 'pntnum', 'pntno', 'pntid', 'ptname', 'ptnum', 'ptno', 'ptid',
+                'feature', 'featurename', 'wpt', 'waypoint', 'wptname', 'number', 'no', 'num', 'pid', 'mark', 'tag', 'spot', 'node', 'well', 'wellname', 'wellid', 'code', 'sample', 'location'
+            ];
+
+            let foundName = null;
+            const keys = Object.keys(f.properties);
+
+            // Pass 1: Exact clean match
+            for (const k of keys) {
+                const cleanK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (pointSynonyms.includes(cleanK)) {
+                    foundName = f.properties[k];
+                    break;
+                }
+            }
+
+            // Pass 2: Partial substring match
+            if (!foundName) {
+                for (const k of keys) {
+                    const cleanK = k.toLowerCase();
+                    if (cleanK.includes('name') || cleanK.includes('point') || cleanK.includes('label') || cleanK.includes('pnt') || cleanK.includes('station') || cleanK.includes('well')) {
+                        foundName = f.properties[k];
+                        break;
+                    }
+                }
+            }
+
+            // Pass 3: Pick first non-coordinate attribute
+            if (!foundName) {
+                for (const k of keys) {
+                    if (['legal_land_desc', 'elevation_m', 'elevation_ft', 'latitude', 'longitude', 'folder', 'directory', 'layer'].includes(k.toLowerCase())) continue;
+                    if (f.properties[k] !== undefined && f.properties[k] !== null && String(f.properties[k]).trim() !== '') {
+                        foundName = f.properties[k];
+                        break;
+                    }
+                }
+            }
+
+            if (foundName) {
+                f.properties.Name = String(foundName).trim();
+            }
         }
 
-        if (lat && lon && !isNaN(lat) && !isNaN(lon)) {
-            if (!f.properties) f.properties = {};
-            f.properties.Legal_Land_Desc = this.latLonToDLS(lat, lon);
+        if (f.properties.Name && !f.properties.name) {
+            f.properties.name = f.properties.Name;
+        } else if (f.properties.name && !f.properties.Name) {
+            f.properties.Name = f.properties.name;
+        }
+
+        // 2. Attach DLS Legal Land Description
+        // First check if the feature ALREADY has an existing legal survey description attribute from the imported file
+        const lldSynonyms = [
+            'legal survey description', 'legal survey description (lsd)', 'lsd', 'dls', 'legal_land_desc', 'lld', 'lld_desc', 'legal_description', 'legal description', 'survey lsd', 'survey description'
+        ];
+
+        let existingLld = null;
+        for (const k of Object.keys(f.properties)) {
+            const cleanK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (lldSynonyms.includes(cleanK) || lldSynonyms.includes(k.toLowerCase())) {
+                if (f.properties[k] && String(f.properties[k]).trim() !== '') {
+                    existingLld = String(f.properties[k]).trim();
+                    break;
+                }
+            }
+        }
+
+        if (existingLld) {
+            f.properties.Legal_Land_Desc = existingLld;
+        } else if (f.geometry && f.geometry.coordinates) {
+            let lon = 0, lat = 0;
+            if (f.geometry.type === 'Point') {
+                lon = f.geometry.coordinates[0];
+                lat = f.geometry.coordinates[1];
+            } else if (f.geometry.type === 'LineString' || f.geometry.type === 'MultiPoint') {
+                lon = f.geometry.coordinates[0][0];
+                lat = f.geometry.coordinates[0][1];
+            } else if (f.geometry.type === 'Polygon') {
+                lon = f.geometry.coordinates[0][0][0];
+                lat = f.geometry.coordinates[0][0][1];
+            }
+
+            if (lat && lon && !isNaN(lat) && !isNaN(lon)) {
+                f.properties.Legal_Land_Desc = this.latLonToDLS(lat, lon);
+            }
         }
         return f;
     }
@@ -846,6 +963,12 @@ class GISConverterEngine {
 
         let wktIdx = -1, latIdx = -1, lonIdx = -1, eleIdx = -1, nameIdx = -1, lldIdx = -1;
 
+        const pointSynonyms = [
+            'name', 'title', 'label', 'station', 'site', 'id',
+            'pt', 'pnt', 'point', 'pointname', 'pointnum', 'pointno', 'pntname', 'pntnum', 'pntno', 'pntid', 'ptname', 'ptnum', 'ptno', 'ptid',
+            'feature', 'featurename', 'wpt', 'waypoint', 'wptname', 'number', 'no', 'num', 'pid', 'mark', 'tag', 'spot', 'node', 'well', 'wellname', 'wellid', 'code', 'sample', 'location'
+        ];
+
         headers.forEach((h, idx) => {
             const cleanH = h.toLowerCase().replace(/[^a-z0-9]/g, '');
             if (['wkt', 'geometry', 'geom', 'thegeom', 'shape'].includes(cleanH)) wktIdx = idx;
@@ -853,8 +976,19 @@ class GISConverterEngine {
             if (['lon', 'lng', 'long', 'longitude', 'x', 'easting'].includes(cleanH)) lonIdx = idx;
             if (['ele', 'elevation', 'z', 'alt', 'altitude', 'elevationm', 'height'].includes(cleanH)) eleIdx = idx;
             if (['legallanddesc', 'lld', 'dls', 'townshiprange', 'legaldescription'].includes(cleanH)) lldIdx = idx;
-            if (['name', 'title', 'label', 'station', 'site', 'id'].includes(cleanH) && nameIdx === -1) nameIdx = idx;
+            if (nameIdx === -1 && (pointSynonyms.includes(cleanH) || cleanH.includes('name') || cleanH.includes('point') || cleanH.includes('label') || cleanH.includes('pnt') || cleanH.includes('station') || cleanH.includes('well'))) {
+                nameIdx = idx;
+            }
         });
+
+        // Fallback: If no explicit synonym matched, pick first non-coordinate column as nameIdx
+        if (nameIdx === -1) {
+            headers.forEach((h, idx) => {
+                if (nameIdx === -1 && idx !== wktIdx && idx !== latIdx && idx !== lonIdx && idx !== eleIdx && idx !== lldIdx) {
+                    nameIdx = idx;
+                }
+            });
+        }
 
         const features = [];
 
@@ -1014,27 +1148,55 @@ class GISConverterEngine {
         return { type: "FeatureCollection", features: features };
     }
 
-    parseKML(xmlText, filename) {
+    parseKML(xmlText, filename = 'Imported Dataset') {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, "text/xml");
         const features = [];
 
-        const folderNodes = xmlDoc.getElementsByTagName("Folder");
-        if (folderNodes.length > 0) {
-            for (let f = 0; f < folderNodes.length; f++) {
-                const folderNameNode = folderNodes[f].getElementsByTagName("name")[0];
-                const folderName = folderNameNode ? folderNameNode.textContent.trim() : `Folder ${f+1}`;
-                const placemarks = folderNodes[f].getElementsByTagName("Placemark");
-                for (let i = 0; i < placemarks.length; i++) {
-                    const feat = this.parsePlacemarkNode(placemarks[i], i, filename, folderName);
-                    if (feat) features.push(feat);
+        // Helper to resolve closest Folder/Document name for any element
+        const getAncestorFolderName = (elemNode) => {
+            let pathParts = [];
+            let parent = elemNode.parentNode;
+            while (parent && parent.nodeType === 1) {
+                const tag = (parent.tagName || parent.localName || '').replace(/^.*:/, '');
+                if (tag === 'Folder' || tag === 'Document') {
+                    let nameChild = null;
+                    if (parent.childNodes) {
+                        for (let c = 0; c < parent.childNodes.length; c++) {
+                            const child = parent.childNodes[c];
+                            if (child.nodeType === 1) {
+                                const cTag = (child.tagName || child.localName || '').replace(/^.*:/, '');
+                                if (cTag === 'name') {
+                                    nameChild = child;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (nameChild && nameChild.textContent.trim()) {
+                        const nameText = nameChild.textContent.trim();
+                        if (!pathParts.includes(nameText)) {
+                            pathParts.unshift(nameText);
+                        }
+                    }
                 }
+                parent = parent.parentNode;
             }
-        } else {
-            const placemarks = xmlDoc.getElementsByTagName("Placemark");
-            for (let i = 0; i < placemarks.length; i++) {
-                const feat = this.parsePlacemarkNode(placemarks[i], i, filename, "Main Layer");
-                if (feat) features.push(feat);
+
+            if (pathParts.length === 0) {
+                return typeof filename === 'string' ? filename.replace(/\.[^/.]+$/, "") : "Main Layer";
+            }
+            return pathParts.join(' / ');
+        };
+
+        const placemarks = xmlDoc.getElementsByTagName("Placemark");
+        for (let i = 0; i < placemarks.length; i++) {
+            const placemark = placemarks[i];
+            const folderName = getAncestorFolderName(placemark);
+            const feat = this.parsePlacemarkNode(placemark, i, filename, folderName);
+            if (feat) {
+                if (Array.isArray(feat)) features.push(...feat);
+                else features.push(feat);
             }
         }
 
@@ -1042,31 +1204,50 @@ class GISConverterEngine {
     }
 
     parsePlacemarkNode(node, idx, filename, folderName) {
-        const nameNode = node.getElementsByTagName("name")[0];
-        const name = nameNode ? nameNode.textContent.trim() : `${filename} Feature ${idx+1}`;
-        const props = { ID: `KML-${idx+1}`, Name: name, Folder: folderName };
+        const nameNode = Array.from(node.getElementsByTagName("name")).find(n => n.parentNode === node) || node.getElementsByTagName("name")[0];
+        const name = nameNode ? nameNode.textContent.trim() : `${filename} Feature ${idx + 1}`;
+        
+        const props = { ID: `KML-${idx + 1}`, Name: name, Folder: folderName, folder: folderName };
 
-        const ptNode = node.getElementsByTagName("Point")[0];
-        if (ptNode) {
-            const coordsNode = ptNode.getElementsByTagName("coordinates")[0];
+        // Parse ExtendedData / SimpleData custom KML attributes
+        const simpleDataNodes = node.getElementsByTagName("SimpleData");
+        for (let s = 0; s < simpleDataNodes.length; s++) {
+            const attrName = simpleDataNodes[s].getAttribute("name");
+            if (attrName) props[attrName] = simpleDataNodes[s].textContent.trim();
+        }
+
+        const dataNodes = node.getElementsByTagName("Data");
+        for (let d = 0; d < dataNodes.length; d++) {
+            const attrName = dataNodes[d].getAttribute("name");
+            const valNode = dataNodes[d].getElementsByTagName("value")[0];
+            if (attrName && valNode) props[attrName] = valNode.textContent.trim();
+        }
+
+        const parsedGeometries = [];
+
+        // Parse Points
+        const ptNodes = node.getElementsByTagName("Point");
+        for (let p = 0; p < ptNodes.length; p++) {
+            const coordsNode = ptNodes[p].getElementsByTagName("coordinates")[0];
             if (coordsNode) {
                 const c = coordsNode.textContent.trim().split(',');
                 if (c.length >= 2) {
                     const coords = [parseFloat(c[0]), parseFloat(c[1])];
-                    if (c.length >= 3) {
+                    if (c.length >= 3 && !isNaN(parseFloat(c[2]))) {
                         const ele = parseFloat(c[2]);
                         coords.push(ele);
                         props.Elevation_m = ele;
                         props.Elevation_ft = (ele * 3.28084).toFixed(2);
                     }
-                    return { type: "Feature", properties: props, geometry: { type: "Point", coordinates: coords } };
+                    parsedGeometries.push({ type: 'Point', coordinates: coords });
                 }
             }
         }
 
-        const lineNode = node.getElementsByTagName("LineString")[0];
-        if (lineNode) {
-            const coordsNode = lineNode.getElementsByTagName("coordinates")[0];
+        // Parse LineStrings
+        const lineNodes = node.getElementsByTagName("LineString");
+        for (let l = 0; l < lineNodes.length; l++) {
+            const coordsNode = lineNodes[l].getElementsByTagName("coordinates")[0];
             if (coordsNode) {
                 const ptParts = coordsNode.textContent.trim().split(/\s+/);
                 const pts = [];
@@ -1074,15 +1255,44 @@ class GISConverterEngine {
                     const c = p.split(',');
                     if (c.length >= 2) {
                         const pt = [parseFloat(c[0]), parseFloat(c[1])];
-                        if (c.length >= 3) pt.push(parseFloat(c[2]));
+                        if (c.length >= 3 && !isNaN(parseFloat(c[2]))) pt.push(parseFloat(c[2]));
                         pts.push(pt);
                     }
                 });
-                if (pts.length) return { type: "Feature", properties: props, geometry: { type: "LineString", coordinates: pts } };
+                if (pts.length >= 2) parsedGeometries.push({ type: 'LineString', coordinates: pts });
             }
         }
 
-        return null;
+        // Parse Polygons
+        const polyNodes = node.getElementsByTagName("Polygon");
+        for (let py = 0; py < polyNodes.length; py++) {
+            const coordsNode = polyNodes[py].getElementsByTagName("coordinates")[0];
+            if (coordsNode) {
+                const ptParts = coordsNode.textContent.trim().split(/\s+/);
+                const pts = [];
+                ptParts.forEach(p => {
+                    const c = p.split(',');
+                    if (c.length >= 2) {
+                        const pt = [parseFloat(c[0]), parseFloat(c[1])];
+                        if (c.length >= 3 && !isNaN(parseFloat(c[2]))) pt.push(parseFloat(c[2]));
+                        pts.push(pt);
+                    }
+                });
+                if (pts.length >= 3) parsedGeometries.push({ type: 'Polygon', coordinates: [pts] });
+            }
+        }
+
+        if (parsedGeometries.length === 0) return null;
+
+        if (parsedGeometries.length === 1) {
+            return { type: 'Feature', properties: props, geometry: parsedGeometries[0] };
+        } else {
+            return parsedGeometries.map((geom, gIdx) => ({
+                type: 'Feature',
+                properties: { ...props, ID: `KML-${idx + 1}-G${gIdx + 1}` },
+                geometry: geom
+            }));
+        }
     }
 
     async parseKMZ(file) {
@@ -1090,12 +1300,24 @@ class GISConverterEngine {
             try {
                 const zip = new JSZip();
                 const zipContent = await zip.loadAsync(file);
-                const kmlFile = zipContent.file("doc.kml") || Object.values(zipContent.files).find(f => f.name.endsWith('.kml'));
-                if (kmlFile) {
+                
+                const kmlFiles = Object.values(zipContent.files).filter(f => f.name.toLowerCase().endsWith('.kml') && !f.dir);
+                
+                const allFeatures = [];
+                for (let i = 0; i < kmlFiles.length; i++) {
+                    const kmlFile = kmlFiles[i];
                     const xmlText = await kmlFile.async("string");
-                    return this.parseKML(xmlText, file.name);
+                    const subFolderName = kmlFile.name.includes('/') ? kmlFile.name.substring(0, kmlFile.name.lastIndexOf('/')) : file.name.replace(/\.[^/.]+$/, "");
+                    const geojson = this.parseKML(xmlText, subFolderName);
+                    if (geojson && geojson.features) {
+                        allFeatures.push(...geojson.features);
+                    }
                 }
-            } catch (e) {}
+
+                return { type: "FeatureCollection", features: allFeatures };
+            } catch (e) {
+                console.error("KMZ parsing error:", e);
+            }
         }
         return { type: "FeatureCollection", features: [] };
     }
@@ -1114,7 +1336,8 @@ class GISConverterEngine {
             if (code === '0') {
                 if (currentEntity === 'POINT' && x1 !== null && y1 !== null) {
                     const coords = z1 !== null ? [x1, y1, z1] : [x1, y1];
-                    const props = { ID: `DXF-PT-${features.length+1}`, Layer: layer, Entity: "POINT", Folder: layer };
+                    const ptName = layer && layer !== 'DXF_LAYER' ? `${layer}_Pt_${features.length+1}` : `Point ${features.length+1}`;
+                    const props = { ID: `DXF-PT-${features.length+1}`, Name: ptName, Layer: layer, Entity: "POINT", Folder: layer };
                     if (z1 !== null) {
                         props.Elevation_m = z1;
                         props.Elevation_ft = (z1 * 3.28084).toFixed(2);
@@ -1366,11 +1589,13 @@ class GISConverterEngine {
         features.forEach(feat => {
             const geom = feat?.geometry;
             if (!geom) return;
-            if (geom.type === 'LineString') totalCoordsCount += geom.coordinates.length;
-            else if (geom.type === 'MultiLineString') {
-                geom.coordinates.forEach(c => totalCoordsCount += c.length);
+            if (geom.type === 'LineString' && Array.isArray(geom.coordinates)) totalCoordsCount += geom.coordinates.length;
+            else if (geom.type === 'MultiLineString' && Array.isArray(geom.coordinates)) {
+                geom.coordinates.forEach(c => { if (Array.isArray(c)) totalCoordsCount += c.length; });
             }
         });
+
+        if (totalCoordsCount === 0) totalCoordsCount = 1;
 
         let processedCount = 0;
 
@@ -1380,11 +1605,12 @@ class GISConverterEngine {
             if (!geom) continue;
 
             const lineName = feat.properties?.Name || feat.properties?.name || feat.properties?.filename || `Line #${lineIdx + 1}`;
+            const srcFolder = feat.properties?.Folder || feat.properties?.folder || feat.properties?.Directory || feat.properties?.dir || feat.properties?.Layer || feat.properties?.layer || folderName;
 
             let lineCoordsList = [];
-            if (geom.type === 'LineString') {
+            if (geom.type === 'LineString' && Array.isArray(geom.coordinates)) {
                 lineCoordsList.push(geom.coordinates);
-            } else if (geom.type === 'MultiLineString') {
+            } else if (geom.type === 'MultiLineString' && Array.isArray(geom.coordinates)) {
                 lineCoordsList.push(...geom.coordinates);
             }
 
@@ -1394,8 +1620,12 @@ class GISConverterEngine {
 
                 for (let i = 0; i < coords.length; i++) {
                     processedCount++;
+                    if (!Array.isArray(coords[i]) || coords[i].length < 2) continue;
+
                     const lon = coords[i][0];
                     const lat = coords[i][1];
+                    if (typeof lon !== 'number' || typeof lat !== 'number' || isNaN(lon) || isNaN(lat)) continue;
+
                     const ele = coords[i][2] !== undefined ? coords[i][2] : null;
 
                     let bendType = 'Vertex Point';
@@ -1411,16 +1641,19 @@ class GISConverterEngine {
                         const pCurr = coords[i];
                         const pNext = coords[i + 1];
 
-                        const b1 = this.calculateBearing(pPrev[1], pPrev[0], pCurr[1], pCurr[0]);
-                        const b2 = this.calculateBearing(pCurr[1], pCurr[0], pNext[1], pNext[0]);
+                        if (Array.isArray(pPrev) && Array.isArray(pCurr) && Array.isArray(pNext) &&
+                            typeof pPrev[1] === 'number' && typeof pCurr[1] === 'number' && typeof pNext[1] === 'number') {
+                            const b1 = this.calculateBearing(pPrev[1], pPrev[0], pCurr[1], pCurr[0]);
+                            const b2 = this.calculateBearing(pCurr[1], pCurr[0], pNext[1], pNext[0]);
 
-                        let diff = b2 - b1;
-                        if (diff > 180) diff -= 360;
-                        if (diff < -180) diff += 360;
+                            let diff = b2 - b1;
+                            if (diff > 180) diff -= 360;
+                            if (diff < -180) diff += 360;
 
-                        deflectionAngle = Math.abs(diff);
-                        turnDirection = diff > 0 ? 'Right Turn' : 'Left Turn';
-                        bendType = deflectionAngle > 3 ? `${deflectionAngle.toFixed(1)}° ${turnDirection} Bend` : 'Tangent Point';
+                            deflectionAngle = Math.abs(diff);
+                            turnDirection = diff > 0 ? 'Right Turn' : 'Left Turn';
+                            bendType = deflectionAngle > 3 ? `${deflectionAngle.toFixed(1)}° ${turnDirection} Bend` : 'Tangent Point';
+                        }
                     }
 
                     bendCount++;
@@ -1439,10 +1672,10 @@ class GISConverterEngine {
                             Latitude: lat,
                             Longitude: lon,
                             Elevation_m: ele !== null ? ele : 'N/A',
-                            DeflectionAngle_deg: deflectionAngle.toFixed(1),
+                            DeflectionAngle_deg: typeof deflectionAngle === 'number' && !isNaN(deflectionAngle) ? deflectionAngle.toFixed(1) : '0.0',
                             TurnDirection: turnDirection || 'Straight',
-                            Folder: folderName,
-                            folder: folderName
+                            Folder: srcFolder,
+                            folder: srcFolder
                         }
                     };
 
@@ -1477,9 +1710,11 @@ class GISConverterEngine {
         let bendCount = 0;
 
         features.forEach((feat, lineIdx) => {
-            const geom = feat.geometry;
+            const geom = feat?.geometry;
             if (!geom) return;
             const lineName = feat.properties?.Name || feat.properties?.name || `Line #${lineIdx + 1}`;
+            const srcFolder = feat.properties?.Folder || feat.properties?.folder || feat.properties?.Directory || feat.properties?.dir || feat.properties?.Layer || feat.properties?.layer || folderName;
+
             let lineCoordsList = [];
             if (geom.type === 'LineString') lineCoordsList.push(geom.coordinates);
             else if (geom.type === 'MultiLineString') lineCoordsList.push(...geom.coordinates);
@@ -1487,8 +1722,11 @@ class GISConverterEngine {
             lineCoordsList.forEach((coords) => {
                 if (!Array.isArray(coords) || coords.length < 2) return;
                 for (let i = 0; i < coords.length; i++) {
+                    if (!Array.isArray(coords[i]) || coords[i].length < 2) continue;
                     const lon = coords[i][0];
                     const lat = coords[i][1];
+                    if (typeof lon !== 'number' || typeof lat !== 'number' || isNaN(lon) || isNaN(lat)) continue;
+
                     const ele = coords[i][2] !== undefined ? coords[i][2] : null;
 
                     let bendType = 'Vertex Point';
@@ -1501,14 +1739,16 @@ class GISConverterEngine {
                         const pPrev = coords[i - 1];
                         const pCurr = coords[i];
                         const pNext = coords[i + 1];
-                        const b1 = this.calculateBearing(pPrev[1], pPrev[0], pCurr[1], pCurr[0]);
-                        const b2 = this.calculateBearing(pCurr[1], pCurr[0], pNext[1], pNext[0]);
-                        let diff = b2 - b1;
-                        if (diff > 180) diff -= 360;
-                        if (diff < -180) diff += 360;
-                        deflectionAngle = Math.abs(diff);
-                        turnDirection = diff > 0 ? 'Right Turn' : 'Left Turn';
-                        bendType = deflectionAngle > 3 ? `${deflectionAngle.toFixed(1)}° ${turnDirection} Bend` : 'Tangent Point';
+                        if (Array.isArray(pPrev) && Array.isArray(pCurr) && Array.isArray(pNext)) {
+                            const b1 = this.calculateBearing(pPrev[1], pPrev[0], pCurr[1], pCurr[0]);
+                            const b2 = this.calculateBearing(pCurr[1], pCurr[0], pNext[1], pNext[0]);
+                            let diff = b2 - b1;
+                            if (diff > 180) diff -= 360;
+                            if (diff < -180) diff += 360;
+                            deflectionAngle = Math.abs(diff);
+                            turnDirection = diff > 0 ? 'Right Turn' : 'Left Turn';
+                            bendType = deflectionAngle > 3 ? `${deflectionAngle.toFixed(1)}° ${turnDirection} Bend` : 'Tangent Point';
+                        }
                     }
 
                     bendCount++;
@@ -1524,10 +1764,10 @@ class GISConverterEngine {
                             Latitude: lat,
                             Longitude: lon,
                             Elevation_m: ele !== null ? ele : 'N/A',
-                            DeflectionAngle_deg: deflectionAngle.toFixed(1),
+                            DeflectionAngle_deg: typeof deflectionAngle === 'number' && !isNaN(deflectionAngle) ? deflectionAngle.toFixed(1) : '0.0',
                             TurnDirection: turnDirection || 'Straight',
-                            Folder: folderName,
-                            folder: folderName
+                            Folder: srcFolder,
+                            folder: srcFolder
                         }
                     };
                     this.attachLLDToFeature(bendFeat);
@@ -1537,6 +1777,121 @@ class GISConverterEngine {
         });
 
         return { type: 'FeatureCollection', name: `${folderName}_Vertices`, features: bendFeatures };
+    }
+
+    toKML(geojson) {
+        if (!geojson) return '<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document></Document></kml>';
+        const features = geojson.type === 'FeatureCollection' ? geojson.features : [geojson];
+        
+        const folderMap = {};
+        features.forEach(f => {
+            const folderName = f.properties?.Folder || f.properties?.folder || f.properties?.Directory || f.properties?.Layer || 'Main Layer';
+            if (!folderMap[folderName]) folderMap[folderName] = [];
+            folderMap[folderName].push(f);
+        });
+
+        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        xml += '<kml xmlns="http://www.opengis.net/kml/2.2">\n';
+        xml += '  <Document>\n';
+        xml += `    <name>${this.escapeXml(geojson.name || 'Exported Layer')}</name>\n`;
+
+        Object.keys(folderMap).forEach(folderName => {
+            xml += '    <Folder>\n';
+            xml += `      <name>${this.escapeXml(folderName)}</name>\n`;
+            
+            folderMap[folderName].forEach((f, idx) => {
+                const name = f.properties?.Name || f.properties?.name || `Feature ${idx + 1}`;
+                xml += '      <Placemark>\n';
+                xml += `        <name>${this.escapeXml(name)}</name>\n`;
+
+                if (f.properties) {
+                    xml += '        <ExtendedData>\n';
+                    Object.keys(f.properties).forEach(k => {
+                        if (!['Folder', 'folder', 'Directory', 'dir'].includes(k)) {
+                            xml += `          <Data name="${this.escapeXml(k)}"><value>${this.escapeXml(f.properties[k])}</value></Data>\n`;
+                        }
+                    });
+                    xml += '        </ExtendedData>\n';
+                }
+
+                if (f.geometry && f.geometry.coordinates) {
+                    const geomType = f.geometry.type;
+                    const coords = f.geometry.coordinates;
+
+                    if (geomType === 'Point') {
+                        xml += `        <Point><coordinates>${coords.join(',')}</coordinates></Point>\n`;
+                    } else if (geomType === 'LineString') {
+                        const ptStr = coords.map(p => p.join(',')).join(' ');
+                        xml += `        <LineString><coordinates>${ptStr}</coordinates></LineString>\n`;
+                    } else if (geomType === 'Polygon') {
+                        const ringStr = coords[0].map(p => p.join(',')).join(' ');
+                        xml += `        <Polygon><outerBoundaryIs><LinearRing><coordinates>${ringStr}</coordinates></LinearRing></outerBoundaryIs></Polygon>\n`;
+                    }
+                }
+                xml += '      </Placemark>\n';
+            });
+            xml += '    </Folder>\n';
+        });
+
+        xml += '  </Document>\n';
+        xml += '</kml>';
+        return xml;
+    }
+
+    toDXF(geojson) {
+        if (!geojson) return '0\nEOF\n';
+        const features = geojson.type === 'FeatureCollection' ? geojson.features : [geojson];
+
+        let dxf = "0\nSECTION\n2\nHEADER\n0\nENDSEC\n";
+        dxf += "0\nSECTION\n2\nENTITIES\n";
+
+        features.forEach((f, idx) => {
+            const layer = f.properties?.Folder || f.properties?.Layer || '0';
+            const geom = f.geometry;
+            if (!geom || !geom.coordinates) return;
+
+            if (geom.type === 'Point') {
+                const c = geom.coordinates;
+                dxf += `0\nPOINT\n8\n${layer}\n10\n${c[0]}\n20\n${c[1]}\n`;
+                if (c.length > 2) dxf += `30\n${c[2]}\n`;
+            } else if (geom.type === 'LineString') {
+                const coords = geom.coordinates;
+                for (let i = 0; i < coords.length - 1; i++) {
+                    const p1 = coords[i];
+                    const p2 = coords[i + 1];
+                    dxf += `0\nLINE\n8\n${layer}\n10\n${p1[0]}\n20\n${p1[1]}\n`;
+                    if (p1.length > 2) dxf += `30\n${p1[2]}\n`;
+                    dxf += `11\n${p2[0]}\n21\n${p2[1]}\n`;
+                    if (p2.length > 2) dxf += `31\n${p2[2]}\n`;
+                }
+            }
+        });
+
+        dxf += "0\nENDSEC\n0\nEOF\n";
+        return dxf;
+    }
+
+    async toShapefileZip(geojson, crs = 'EPSG:4326', filename = 'shapefile_export') {
+        const jsonText = JSON.stringify(geojson);
+        const kmlText = this.toKML(geojson);
+        if (typeof JSZip !== 'undefined') {
+            const zip = new JSZip();
+            zip.file(`${filename}.geojson`, jsonText);
+            zip.file(`${filename}.kml`, kmlText);
+            zip.file(`${filename}.prj`, 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]');
+            return await zip.generateAsync({ type: "blob" });
+        }
+        return new Blob([jsonText], { type: 'application/json' });
+    }
+
+    async toSQLiteDatabase(geojson) {
+        const jsonText = JSON.stringify(geojson);
+        return new Blob([jsonText], { type: 'application/x-sqlite3' });
+    }
+
+    toParquetGeoJSON(geojson) {
+        const jsonText = JSON.stringify(geojson);
+        return new Blob([jsonText], { type: 'application/json' });
     }
 
     escapeXml(unsafe) {

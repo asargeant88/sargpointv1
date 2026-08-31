@@ -203,13 +203,17 @@ $currentUser = getCurrentUser();
                         <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 20H4v-4h4v4zm0-6H4v-4h4v4zm0-6H4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4z"/></svg>
                         DLS Gridlines
                     </button>
+                    <button class="btn btn-outline active" id="btnTogglePointLabels" title="Toggle Point Name Labels on Map Canvas">
+                        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16zM16 17H5V7h11l3.55 5L16 17z"/></svg>
+                        Point Labels
+                    </button>
                     <button class="btn btn-outline" id="measureBtn">
                         <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 10H3V8h2v4h2V8h2v2h2V8h2v4h2V8h2v2h2V8h3v8z"/></svg>
                         Measure Distance
                     </button>
                     <button class="btn btn-outline" id="spreadsheetBtn">
                         <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H5v-4h4v4zm0-6H5V7h4v4zm6 6h-4v-4h4v4zm0-6h-4V7h4v4zm5 6h-4v-4h1v-2h-1V7h4v10z"/></svg>
-                        Spreadsheet View
+                        Attribute Inspector
                     </button>
                     <button class="btn btn-outline" id="btnMergeDatasets" title="Combine multiple active datasets into one unified layer" style="border-color:#059669; color:#059669; background:#ecfdf5; font-weight:700;">
                         <svg class="svg-icon" viewBox="0 0 24 24" style="fill:#059669;"><path d="M19 11h-6V5c0-.55-.45-1-1-1s-1 .45-1 1v6H5c-.55 0-1 .45-1 1s.45 1 1 1h6v6c0 .55.45 1 1 1s1-.45 1-1v-6h6c.55 0 1-.45 1-1s-.45-1-1-1z"/></svg>
@@ -405,26 +409,22 @@ $currentUser = getCurrentUser();
                     </button>
                 </div>
 
-                <!-- Attribute Inspector Table -->
-                <div class="spatial-attribute-inspector">
-                    <div class="inspector-header">
-                        <h4>Spatial Attribute Inspector</h4>
-                        <button class="btn btn-outline" id="openSpreadsheetGridBtn" style="padding:2px 8px; font-size:0.75rem;">
-                            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H5v-4h4v4zm0-6H5V7h4v4zm6 6h-4v-4h4v4zm0-6h-4V7h4v4zm5 6h-4v-4h1v-2h-1V7h4v10z"/></svg>
-                            Config Spreadsheet
-                        </button>
+                <!-- Spatial Attribute Inspector Card -->
+                <div class="spatial-attribute-inspector-card" style="background:#ffffff; border:1px solid var(--border-color); border-radius:10px; padding:14px; margin-top:12px; box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                        <div style="font-weight:700; font-size:0.85rem; color:#1e293b; display:flex; align-items:center; gap:6px;">
+                            <svg class="svg-icon" viewBox="0 0 24 24" style="fill:#0284c7; width:18px; height:18px;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H5v-4h4v4zm0-6H5V7h4v4zm6 6h-4v-4h4v4zm0-6h-4V7h4v4zm5 6h-4v-4h1v-2h-1V7h4v10z"/></svg>
+                            Spatial Attribute Inspector
+                        </div>
+                        <span id="inspectorCardBadge" style="font-size:0.72rem; font-weight:700; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:10px;">0 Features</span>
                     </div>
-
-                    <div class="table-responsive">
-                        <table class="attr-table">
-                            <thead id="attrTableHead">
-                                <tr><th>Geometry</th><th>ID</th><th>Name</th><th>Latitude</th><th>Longitude</th></tr>
-                            </thead>
-                            <tbody id="attrTableBody">
-                                <tr><td colspan="5" style="text-align:center;">No features found</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <p style="font-size:0.75rem; color:#64748b; margin-bottom:10px; line-height:1.4;">
+                        Inspect, filter, edit, and export spatial geometry attributes, elevations, and legal land descriptions in a dedicated full-screen modal inspector.
+                    </p>
+                    <button class="btn btn-primary" id="openAttributeInspectorModalBtn" style="width:100%; font-weight:700; font-size:0.82rem; padding:0.55rem; display:flex; align-items:center; justify-content:center; gap:6px; background:linear-gradient(135deg, #0284c7, #2563eb); border:none; box-shadow:0 2px 6px rgba(37,99,235,0.25);">
+                        <svg class="svg-icon" viewBox="0 0 24 24" style="fill:#ffffff; width:16px; height:16px;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H5v-4h4v4zm0-6H5V7h4v4zm6 6h-4v-4h4v4zm0-6h-4V7h4v4zm5 6h-4v-4h1v-2h-1V7h4v10z"/></svg>
+                        Open Spatial Attribute Inspector Modal
+                    </button>
                 </div>
             </div>
         </div>
@@ -483,7 +483,18 @@ $currentUser = getCurrentUser();
                     <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;" id="loggedInAccountEmail">user@domain.com</div>
                     <div style="margin-top:12px; font-weight:700; color:#2563eb; font-size:0.9rem;" id="loggedInAccountPlan">ENTERPRISE Plan</div>
                     
-                    <button class="btn btn-outline" id="btnLogoutModal" style="width:100%; margin-top:1.5rem; padding:0.75rem; border-color:#fca5a5; color:#dc2626; background:#fef2f2; font-weight:700;">
+                    <div style="display:flex; flex-direction:column; gap:0.6rem; margin-top:1.2rem;">
+                        <button class="btn btn-primary" id="btnManageBillingFromAccount" style="width:100%; padding:0.65rem;">
+                            <svg class="svg-icon" viewBox="0 0 24 24" style="fill:#fff; margin-right:4px;"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+                            Billing & Subscription Invoices
+                        </button>
+                        <button class="btn btn-outline" id="btnUpgradePlanFromAccount" style="width:100%; padding:0.65rem;">
+                            <svg class="svg-icon" viewBox="0 0 24 24" style="margin-right:4px;"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+                            Upgrade / Change Plan
+                        </button>
+                    </div>
+
+                    <button class="btn btn-outline" id="btnLogoutModal" style="width:100%; margin-top:1rem; padding:0.65rem; border-color:#fca5a5; color:#dc2626; background:#fef2f2; font-weight:700;">
                         Sign Out of Sargpoint
                     </button>
                 </div>
@@ -517,6 +528,9 @@ $currentUser = getCurrentUser();
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>100 MB</strong> monthly upload quota</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>30 files</strong> / month</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Standard Formats (SHP, GeoJSON, KML, GPX, DXF)</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> KMZ/KML Directory & Sub-Folder Hierarchy Splitting</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Pipeline Bends & GPS Location Extraction</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Combined Information & Attributes Grid Export</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 100+ EPSG CRS Projections</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Editable Spreadsheet Data Grid</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Terrain Elevations & Legal Land Description (DLS)</li>
@@ -533,6 +547,8 @@ $currentUser = getCurrentUser();
                         <ul class="plan-features">
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>2 GB</strong> monthly upload quota</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>500 files</strong> / month</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>Multi-Directory Combined Information & Export Suite</strong></li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>Line Bend Deflection Angle & Turn Calculation Engine</strong></li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>Developer API Secret Key Access</strong></li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> GeoParquet & SQLite / SpatiaLite Engines</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> AutoCAD 3D DXF & Google Earth 3D KMZ</li>
@@ -549,7 +565,10 @@ $currentUser = getCurrentUser();
                         <ul class="plan-features">
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>100 GB</strong> monthly upload quota</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>Unlimited files</strong> / month</li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>Enterprise High-Volume Combined GIS Export Pipelines</strong></li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>Enterprise Automated KMZ Folder Pipeline & API</strong></li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> <strong>Dedicated High-Throughput REST API</strong></li>
+                            <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> High-Precision DLS Legal Land Description Engine</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> PostgreSQL Enterprise Cloud Database</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Custom Projections & WKT Pipelines</li>
                             <li><svg class="svg-icon feature-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Admin Management Portal</li>
@@ -594,13 +613,16 @@ $currentUser = getCurrentUser();
         </div>
     </div>
 
-    <!-- MODAL 4: Configurable Spreadsheet Data Grid Modal -->
+    <!-- MODAL 4: Spatial Attribute Inspector & Data Grid Modal -->
     <div class="modal-overlay" id="spreadsheetModal">
-        <div class="modal-container" style="max-width:1150px;">
+        <div class="modal-container" style="max-width:1280px; width:95vw;">
             <div class="modal-header">
                 <div>
-                    <h3 id="spreadsheetTitle">Editable Spreadsheet Data Grid</h3>
-                    <p class="drawer-subtitle" id="spreadsheetSubtitle">Configure properties, edit cells, or export selected features with elevations & Legal Land Descriptions</p>
+                    <h3 id="spreadsheetTitle" style="display:flex; align-items:center; gap:8px;">
+                        <svg class="svg-icon" viewBox="0 0 24 24" style="fill:#0284c7; width:22px; height:22px;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H5v-4h4v4zm0-6H5V7h4v4zm6 6h-4v-4h4v4zm0-6h-4V7h4v4zm5 6h-4v-4h1v-2h-1V7h4v10z"/></svg>
+                        Spatial Attribute Inspector & Data Grid
+                    </h3>
+                    <p class="drawer-subtitle" id="spreadsheetSubtitle">Inspect, filter, search, edit, and export spatial geometry attributes, elevations, and DLS legal descriptions</p>
                 </div>
                 <span class="modal-close"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span>
             </div>
@@ -647,6 +669,28 @@ $currentUser = getCurrentUser();
                             <span id="exportSelectedBtnText">Export Selected</span>
                         </button>
                         <button class="btn btn-outline" id="exportAllAnyFormatBtn">Export All</button>
+                </div>
+
+                <!-- Directory / Folder Directory Split & Selection Bar -->
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.75rem; background:var(--bg-card-secondary); padding:0.6rem 0.85rem; border-radius:8px; border:1px solid var(--border-color);">
+                    <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                        <label for="spreadsheetFolderFilter" style="font-weight:600; font-size:0.8rem; color:var(--text-secondary); display:flex; align-items:center; gap:4px; margin:0;">
+                            <svg class="svg-icon" viewBox="0 0 24 24" style="fill:var(--accent-blue); width:18px; height:18px;"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+                            Directory / Folder:
+                        </label>
+                        <select id="spreadsheetFolderFilter" class="form-control" style="min-width:220px; max-width:340px; padding:0.35rem 0.5rem; font-size:0.82rem;">
+                            <option value="ALL">All Directories / Folders</option>
+                        </select>
+                        <button class="btn btn-outline" id="btnSelectFolderRows" style="padding:0.35rem 0.65rem; font-size:0.78rem; font-weight:600; border-color:var(--accent-blue); color:var(--accent-blue);">
+                            Select All in Directory
+                        </button>
+                        <button class="btn btn-outline" id="btnDeselectFolderRows" style="padding:0.35rem 0.65rem; font-size:0.78rem; font-weight:600;">
+                            Deselect All in Directory
+                        </button>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <input type="text" id="spreadsheetSearchInput" class="form-control" placeholder="Search rows or attributes..." style="width:200px; padding:0.35rem 0.5rem; font-size:0.8rem;">
+                        <span id="spreadsheetRowCountBadge" style="font-size:0.78rem; font-weight:600; color:var(--text-secondary); background:var(--bg-card); padding:4px 10px; border-radius:12px; border:1px solid var(--border-color);">0 rows</span>
                     </div>
                 </div>
 
@@ -682,8 +726,12 @@ $currentUser = getCurrentUser();
                 </div>
 
                 <!-- Live Official Stripe Buy Button Container -->
-                <div id="stripeBuyButtonContainer" style="margin:1rem 0; display:flex; justify-content:center; align-items:center; width:100%; min-height:80px;"></div>
+                <div id="stripeBuyButtonContainer" style="margin:1rem 0; display:flex; justify-content:center; align-items:center; width:100%; min-height:60px;"></div>
                 
+                <button class="btn btn-primary" id="btnInstantActivatePlan" style="width:100%; margin-top:0.5rem; padding:0.75rem; font-size:0.95rem; font-weight:700; background:linear-gradient(135deg, #1e40af, #2563eb);">
+                    Subscribe & Activate Plan Now
+                </button>
+
                 <div style="font-size:0.75rem; color:#94a3b8; text-align:center; margin-top:1rem; display:flex; align-items:center; justify-content:center; gap:5px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="#635bff"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
                     Official Stripe 256-Bit SSL Encrypted Checkout

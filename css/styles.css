@@ -925,14 +925,17 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 
 .spreadsheet-table {
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
     border-collapse: collapse;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
 }
 
 .spreadsheet-table th, .spreadsheet-table td {
     border: 1px solid var(--border-color);
     padding: 0.45rem 0.65rem;
+    white-space: nowrap;
 }
 
 .spreadsheet-table th {
@@ -940,19 +943,33 @@ input:checked + .slider:before { transform: translateX(22px); }
     position: sticky;
     top: 0;
     z-index: 10;
+    font-weight: 600;
 }
 
 .spreadsheet-cell-input {
     width: 100%;
+    min-width: 95px;
     border: none;
     background: transparent;
     outline: none;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
+    font-family: var(--font-mono, monospace);
+    color: var(--text-primary);
+}
+
+.spreadsheet-cell-input.latlon-input {
+    min-width: 125px;
+    font-weight: 600;
+}
+
+.spreadsheet-cell-input.lld-input {
+    min-width: 175px;
 }
 
 .spreadsheet-cell-input:focus {
     background: #f1f5f9;
     border-radius: 3px;
+    box-shadow: 0 0 0 2px var(--accent-blue-light);
 }
 
 /* ==========================================================================
@@ -1079,3 +1096,34 @@ textarea.form-control {
 .modal-body {
     padding: 1.75rem;
 }
+
+/* Leaflet Point Name Map Label Tooltip */
+.point-map-label {
+    background: #0f172a !important;
+    color: #ffffff !important;
+    border: 1px solid #334155 !important;
+    border-radius: 6px !important;
+    padding: 3px 8px !important;
+    font-weight: 700 !important;
+    font-size: 0.75rem !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
+    white-space: nowrap !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35) !important;
+    opacity: 0.95 !important;
+    pointer-events: none !important;
+}
+
+.point-map-label::before {
+    border-top-color: #0f172a !important;
+}
+
+/* Spatial Attribute Inspector Card */
+.spatial-attribute-inspector-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.spatial-attribute-inspector-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+

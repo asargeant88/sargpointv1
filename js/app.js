@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isYearlyBilling = true;
     let uploadedDatasets = [];
     let selectedFeatureIndices = new Set();
+    let isPointLabelsVisible = true;
 
     let streetsTileLayer = null;
     let satelliteTileLayer = null;
@@ -152,6 +153,25 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        const btnPointLabels = document.getElementById('btnTogglePointLabels');
+        if (btnPointLabels) {
+            btnPointLabels.classList.add('active', 'btn-primary');
+            btnPointLabels.classList.remove('btn-outline');
+            btnPointLabels.addEventListener('click', () => {
+                isPointLabelsVisible = !isPointLabelsVisible;
+                if (isPointLabelsVisible) {
+                    btnPointLabels.classList.add('active', 'btn-primary');
+                    btnPointLabels.classList.remove('btn-outline');
+                } else {
+                    btnPointLabels.classList.remove('active', 'btn-primary');
+                    btnPointLabels.classList.add('btn-outline');
+                }
+                if (currentGeoJSON) {
+                    renderGeoJSONOnMap(currentGeoJSON);
+                }
+            });
+        }
+
         leafletMap.on('moveend zoomend', () => {
             if (isDLSGridVisible) renderDLSGridlines();
         });
@@ -204,8 +224,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        const latBaseline = 49.030066;
-        const twpLatSpan = 0.086736;
+        const latBaseline = 49.000000;
+        const twpLatSpan = 0.087095;
         const secLatSpan = twpLatSpan / 6;
 
         // 2. Key Township Lines (every 6 miles = 0.086736° lat)
@@ -328,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function showLSDGridHighlight(lat, lon) {
         if (typeof gisConverter === 'undefined') return;
 
-        // Compute DLS info first to get the LSD identity key
+        // Compute mathematical DLS info as fallback
         const dlsInfo = gisConverter.getDLSInfo(lat, lon);
         if (!dlsInfo || !dlsInfo.bounds) return;
 
@@ -342,10 +362,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             window.activeLSDGridPoly = L.layerGroup().addTo(leafletMap);
 
-            // Option A: Try live official ArcGIS REST Cadastral service
+            // Try live official ArcGIS REST Cadastral service
             const officialCadastral = await gisConverter.queryCadastralArcGIS(lat, lon);
 
             if (officialCadastral && (officialCadastral.quarterFeature || officialCadastral.sectionFeature)) {
+                // --- Use Official Alberta Survey Polygons for Map Display ---
                 if (officialCadastral.sectionFeature) {
                     L.geoJSON(officialCadastral.sectionFeature, {
                         style: () => ({ color: '#1e40af', weight: 2.5, dashArray: '6, 6', fill: false, interactive: false })
@@ -356,37 +377,103 @@ document.addEventListener('DOMContentLoaded', () => {
                         style: () => ({ color: '#0078ff', weight: 3, fillColor: '#0078ff', fillOpacity: 0.35, interactive: false })
                     }).addTo(window.activeLSDGridPoly);
                 }
+
+                // --- Override DLS text labels with official data ---
+                try {
+                    const secProps = officialCadastral.sectionFeature?.properties || {};
+                    const qtrProps = officialCadastral.quarterFeature?.properties || {};
+
+                    const sec = secProps.SEC || dlsInfo.sec;
+                    const twp = secProps.TWP || dlsInfo.twp;
+                    const rge = secProps.RGE || dlsInfo.range;
+                    const mer = secProps.M || dlsInfo.meridian;
+                    const qtr = qtrProps.QS || dlsInfo.quarter;
+
+                    // Compute LSD from the official quarter section polygon geometry
+                    let lsd = dlsInfo.lsd; // fallback
+                    if (officialCadastral.sectionFeature && officialCadastral.sectionFeature.geometry) {
+                        const sCoords = officialCadastral.sectionFeature.geometry.coordinates[0];
+                        let sMinLat = 999, sMaxLat = -999, sMinLon = 999, sMaxLon = -999;
+                        sCoords.forEach(c => {
+                            if (c[1] < sMinLat) sMinLat = c[1]; if (c[1] > sMaxLat) sMaxLat = c[1];
+                            if (c[0] < sMinLon) sMinLon = c[0]; if (c[0] > sMaxLon) sMaxLon = c[0];
+                        });
+                        // Position within official section polygon (0=south/east, 1=north/west)
+                        const secFracY = Math.max(0, Math.min(0.9999, (lat - sMinLat) / (sMaxLat - sMinLat)));
+                        const secFracX = Math.max(0, Math.min(0.9999, (sMaxLon - lon) / (sMaxLon - sMinLon)));
+                        const lsdRow = Math.floor(secFracY * 4);
+                        const lsdCol = Math.floor(secFracX * 4);
+                        const lsdMatrix = [
+                            [1, 2, 3, 4],
+                            [8, 7, 6, 5],
+                            [9, 10, 11, 12],
+                            [16, 15, 14, 13]
+                        ];
+                        lsd = lsdMatrix[lsdRow][lsdCol];
+
+                        // Also compute accurate LSD corners from section polygon
+                        const lsdLatSpan = (sMaxLat - sMinLat) / 4;
+                        const lsdLonSpan = (sMaxLon - sMinLon) / 4;
+                        const lsdMinLat = sMinLat + lsdRow * lsdLatSpan;
+                        const lsdMaxLat = lsdMinLat + lsdLatSpan;
+                        // lsdCol 0 = east, 3 = west
+                        const lsdEastLon = sMaxLon - lsdCol * lsdLonSpan;
+                        const lsdWestLon = lsdEastLon - lsdLonSpan;
+
+                        const lsdTier = gisConverter.buildTierBoundsAndCorners(lsdMinLat, lsdMaxLat, lsdWestLon, lsdEastLon);
+                        dlsInfo.corners = lsdTier.corners;
+                        dlsInfo.headings = lsdTier.headings;
+                        dlsInfo.bounds = [[lsdMinLat, lsdWestLon], [lsdMaxLat, lsdEastLon]];
+
+                        // Compute quarter section bounds from section polygon
+                        const qtrRow = Math.floor(secFracY * 2);
+                        const qtrCol = Math.floor(secFracX * 2);
+                        const qtrLatSpan = (sMaxLat - sMinLat) / 2;
+                        const qtrLonSpan = (sMaxLon - sMinLon) / 2;
+                        const qtrMinLat = sMinLat + qtrRow * qtrLatSpan;
+                        const qtrMaxLat = qtrMinLat + qtrLatSpan;
+                        const qtrEastLon = sMaxLon - qtrCol * qtrLonSpan;
+                        const qtrWestLon = qtrEastLon - qtrLonSpan;
+                        dlsInfo.quarterBounds = [[qtrMinLat, qtrWestLon], [qtrMaxLat, qtrEastLon]];
+                        dlsInfo.sectionBounds = [[sMinLat, sMinLon], [sMaxLat, sMaxLon]];
+                    }
+
+                    // Override the display strings with official values
+                    const twpPad = String(twp).padStart(3, '0');
+                    const rgePad = String(rge).padStart(2, '0');
+                    dlsInfo.sectionLld = `Sec ${sec}-${twpPad}-${rgePad} W${mer} (640 Acres)`;
+                    dlsInfo.quarterLld = `${qtr} ${sec}-${twpPad}-${rgePad} W${mer} (160 Acres)`;
+                    dlsInfo.lsdLld = `LSD ${lsd}-${sec}-${twpPad}-${rgePad} W${mer} (40 Acres)`;
+                    dlsInfo.shortLld = `${lsd}-${sec}-${twp}-${rge} W${mer}`;
+                    dlsInfo.lld = `LSD ${lsd}-${sec}-${twp}-${rge} W${mer} (${qtr})`;
+                    dlsInfo.sec = sec;
+                    dlsInfo.twp = twp;
+                    dlsInfo.range = rge;
+                    dlsInfo.meridian = mer;
+                    dlsInfo.quarter = qtr;
+                    dlsInfo.lsd = lsd;
+
+                    // Recalculate road designations from official section/range
+                    const secRow = Math.floor(((sec - 1) % 6 === 0 ? 0 : (sec - 1)) / 6);
+                    dlsInfo.twpRoad = `Twp Rd ${(twp * 10) + secRow}`;
+                    dlsInfo.rangeRoad = `Rge Rd ${(rge * 10) + (6 - Math.floor(((sec - 1) % 6)))}`;
+                } catch (e) {
+                    console.warn('Failed to parse official cadastral data, using math fallback:', e);
+                }
             } else {
                 // Fallback: Internal calibrated DLS calculation engine
-                // 1. Full Section Boundary (640 Acres - Dashed Outer Box)
                 if (dlsInfo.sectionBounds) {
                     L.rectangle(dlsInfo.sectionBounds, {
-                        color: '#1e40af',
-                        weight: 2,
-                        dashArray: '6, 6',
-                        fill: false,
-                        interactive: false
+                        color: '#1e40af', weight: 2, dashArray: '6, 6', fill: false, interactive: false
                     }).addTo(window.activeLSDGridPoly);
                 }
-
-                // 2. Quarter Section Boundary (160 Acres - Dotted Cyan Box)
                 if (dlsInfo.quarterBounds) {
                     L.rectangle(dlsInfo.quarterBounds, {
-                        color: '#0284c7',
-                        weight: 2,
-                        dashArray: '3, 4',
-                        fill: false,
-                        interactive: false
+                        color: '#0284c7', weight: 2, dashArray: '3, 4', fill: false, interactive: false
                     }).addTo(window.activeLSDGridPoly);
                 }
-
-                // 3. 40-Acre LSD Box (Solid Blue Fill)
                 L.rectangle(dlsInfo.bounds, {
-                    color: '#0078ff',
-                    weight: 2.5,
-                    fillColor: '#0078ff',
-                    fillOpacity: 0.35,
-                    interactive: false
+                    color: '#0078ff', weight: 2.5, fillColor: '#0078ff', fillOpacity: 0.35, interactive: false
                 }).addTo(window.activeLSDGridPoly);
             }
         }
@@ -1049,7 +1136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function processAndDisplayRealDataset(filename, geojson, extractedFiles = [], folderPath = '') {
+    function processAndDisplayRealDataset(filename, geojson, extractedFiles = [], folderPath = '', isSwitchingOnly = false) {
         currentGeoJSON = geojson;
         selectedFeatureIndices.clear();
 
@@ -1061,17 +1148,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const spatialInfo = gisConverter.calculateBoundsAndCentroid(geojson);
 
-        const datasetObj = {
-            id: Date.now(),
-            filename: filename,
-            geojson: geojson,
-            spatialInfo: spatialInfo,
-            extractedFiles: extractedFiles,
-            folderPath: folderPath,
-            status: 'On Map'
-        };
-        uploadedDatasets.unshift(datasetObj);
-        updateDatasetsSubpanelList();
+        if (!isSwitchingOnly) {
+            const datasetObj = {
+                id: Date.now(),
+                filename: filename,
+                geojson: geojson,
+                spatialInfo: spatialInfo,
+                extractedFiles: extractedFiles,
+                folderPath: folderPath,
+                status: 'On Map'
+            };
+            const existingIdx = uploadedDatasets.findIndex(d => d.filename === filename);
+            if (existingIdx !== -1) {
+                uploadedDatasets[existingIdx] = datasetObj;
+            } else {
+                uploadedDatasets.unshift(datasetObj);
+            }
+            updateDatasetsSubpanelList();
+        }
 
         document.getElementById('drawerDatasetTitle').textContent = filename;
         const nameInput = document.getElementById('datasetNameInput');
@@ -1084,6 +1178,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('drawerDatasetSubtitle').textContent = `${features.length} Feature(s) loaded`;
         }
 
+        const inspectorBadge = document.getElementById('inspectorCardBadge');
+        if (inspectorBadge) inspectorBadge.textContent = `${features.length} Features`;
+
         renderKmzFoldersBox(geojson);
         renderExtractedFilesBox(filename, extractedFiles, folderPath);
         renderGeoJSONOnMap(geojson, spatialInfo);
@@ -1094,10 +1191,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasLines = features.some(f => f.geometry && (f.geometry.type === 'LineString' || f.geometry.type === 'MultiLineString'));
         if (hasLines && autoExtract) {
             const folderName = document.getElementById('exportFolderNameInput')?.value.trim() || 'Line / Pipeline Bends';
-            const bendsGeoJSON = gisConverter.extractLineBends(geojson, folderName);
-            if (bendsGeoJSON && bendsGeoJSON.features.length > 0) {
-                showToast(`Extracted ${bendsGeoJSON.features.length} Line Bends / GPS Vertices into '${folderName}'!`);
-            }
+            setTimeout(async () => {
+                try {
+                    const bendsGeoJSON = await gisConverter.extractLineBendsAsync(geojson, folderName);
+                    if (bendsGeoJSON && bendsGeoJSON.features.length > 0) {
+                        showToast(`Extracted ${bendsGeoJSON.features.length} Line Bends / GPS Vertices into '${folderName}'!`);
+                    }
+                } catch(e) {
+                    console.error("Error auto-extracting line bends:", e);
+                }
+            }, 50);
         }
     }
 
@@ -1119,9 +1222,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const bendsGeoJSON = await gisConverter.extractLineBendsAsync(currentGeoJSON, folderName, (curr, total) => {
-                const pct = total > 0 ? Math.round((curr / total) * 100) : 100;
+                const pct = total > 0 ? Math.min(100, Math.round((curr / total) * 100)) : 100;
                 if (btn) btn.innerHTML = `Extracting Bends (${pct}%)...`;
             });
+
+            if (btn) btn.innerHTML = `Rendering Bends & Map (100%)...`;
+            await new Promise(r => setTimeout(r, 50));
 
             if (!bendsGeoJSON || bendsGeoJSON.features.length === 0) {
                 showToast('No line features found in current dataset to extract bends from.');
@@ -1131,6 +1237,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast(`Successfully extracted ${bendsGeoJSON.features.length} Line Bends & GPS Vertices into '${folderName}'!`);
             }
         } catch(e) {
+            console.error("Error extracting line bends:", e);
             showToast('Error extracting line bends.');
         } finally {
             if (btn) {
@@ -1229,24 +1336,39 @@ document.addEventListener('DOMContentLoaded', () => {
             style: () => ({ color: '#0284c7', weight: 2, fillColor: '#0284c7', fillOpacity: 0.12 }),
             pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 6, fillColor: "#0284c7", color: "#ffffff", weight: 2, fillOpacity: 0.9 }),
             onEachFeature: (feature, layer) => {
+                const featName = feature.properties?.Name || feature.properties?.name || feature.properties?.label || feature.properties?.ID || feature.properties?.id || 'Point';
+
+                if (feature.geometry && (feature.geometry.type === 'Point' || feature.geometry.type === 'MultiPoint')) {
+                    layer.bindTooltip(escapeHtml(String(featName)), {
+                        permanent: isPointLabelsVisible,
+                        direction: 'top',
+                        offset: [0, -8],
+                        className: 'point-map-label'
+                    });
+                }
+
                 layer.on('click', (e) => {
                     if (isMeasuring) {
                         L.DomEvent.stopPropagation(e);
-                        const featName = feature.properties?.Name || feature.properties?.name || feature.properties?.ID || feature.properties?.id || 'Dataset Point';
                         handleMeasureMapClick({ latlng: e.latlng, featureName: featName });
                     } else {
                         showLSDGridHighlight(e.latlng.lat, e.latlng.lng);
                     }
                 });
 
-                let popup = '<div style="font-size:0.85rem;"><strong>Feature Attributes:</strong><br>';
+                let popup = `<div style="font-size:0.85rem; max-width:280px; max-height:220px; overflow-y:auto;">
+                    <div style="background:#0284c7; color:#ffffff; padding:6px 10px; border-radius:6px; font-weight:700; font-size:0.88rem; margin:-4px -4px 8px -4px; text-align:center; box-shadow:0 2px 4px rgba(0,0,0,0.15);">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="#ffffff" style="vertical-align:-2px; margin-right:4px;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        ${escapeHtml(String(featName))}
+                    </div>
+                    <strong>Feature Attributes:</strong><br>`;
                 if (feature.properties) {
                     Object.keys(feature.properties).forEach(k => {
-                        popup += `<b>${k}:</b> ${feature.properties[k]}<br>`;
+                        popup += `<b>${escapeHtml(k)}:</b> ${escapeHtml(String(feature.properties[k]))}<br>`;
                     });
                 }
                 popup += '</div>';
-                layer.bindPopup(popup);
+                layer.bindPopup(popup, { maxWidth: 300 });
             }
         }).addTo(leafletMap);
         
@@ -1261,6 +1383,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderAttributeTable(geojson) {
         const tbody = document.getElementById('attrTableBody');
         const thead = document.getElementById('attrTableHead');
+        if (!tbody || !thead) {
+            const modalEl = document.getElementById('spreadsheetModal');
+            if (modalEl && (modalEl.classList.contains('active') || modalEl.style.display === 'flex') && geojson) {
+                renderSpreadsheetGridModal(geojson);
+            }
+            return;
+        }
         tbody.innerHTML = '';
         thead.innerHTML = '';
 
@@ -1270,8 +1399,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const maxDisplay = 500;
+        const displayFeatures = features.slice(0, maxDisplay);
+
         const keysSet = new Set();
-        features.forEach(f => {
+        displayFeatures.forEach(f => {
             if (f && f.properties) Object.keys(f.properties).forEach(k => keysSet.add(k));
         });
         const keys = Array.from(keysSet);
@@ -1281,24 +1413,61 @@ document.addEventListener('DOMContentLoaded', () => {
         trHead += '</tr>';
         thead.innerHTML = trHead;
 
-        features.forEach(f => {
+        const rows = [];
+        displayFeatures.forEach(f => {
             let tr = `<tr><td><span style="font-weight:600; color:var(--accent-blue);">${f.geometry?.type || 'Vector'}</span></td>`;
             keys.forEach(k => {
                 tr += `<td>${f.properties ? (f.properties[k] ?? '') : ''}</td>`;
             });
             tr += '</tr>';
-            tbody.innerHTML += tr;
+            rows.push(tr);
         });
+
+        if (features.length > maxDisplay) {
+            rows.push(`<tr><td colspan="${keys.length + 1}" style="text-align:center; font-style:italic; color:var(--text-secondary); background:var(--bg-card-secondary); padding:8px;">Showing first ${maxDisplay} of ${features.length} features (use Export or Spreadsheet Grid to view/export all)</td></tr>`);
+        }
+
+        tbody.innerHTML = rows.join('');
     }
 
     function renderSpreadsheetGridModal(geojson) {
         const thead = document.getElementById('spreadsheetHead');
         const tbody = document.getElementById('spreadsheetBody');
+        const folderSelect = document.getElementById('spreadsheetFolderFilter');
+        const searchInput = document.getElementById('spreadsheetSearchInput');
+        const rowBadge = document.getElementById('spreadsheetRowCountBadge');
+
         thead.innerHTML = '';
         tbody.innerHTML = '';
 
         const features = geojson.type === 'FeatureCollection' ? geojson.features : [geojson];
         if (!features || !features.length) return;
+
+        // Helper to resolve directory / folder for each feature
+        const getFeatureFolder = (f) => {
+            return f.properties?.Folder || f.properties?.folder || f.properties?.Directory || f.properties?.dir || f.properties?.Layer || f.properties?.layer || f.properties?.filename || f.properties?.LineName || 'Root Directory';
+        };
+
+        // Populate Directory / Folder Filter Options
+        const folderCounts = {};
+        features.forEach(f => {
+            const folder = getFeatureFolder(f);
+            folderCounts[folder] = (folderCounts[folder] || 0) + 1;
+        });
+
+        if (folderSelect) {
+            const currentFolder = folderSelect.value || 'ALL';
+            let optHtml = `<option value="ALL">All Directories / Folders (${features.length} features)</option>`;
+            Object.keys(folderCounts).sort().forEach(folderName => {
+                optHtml += `<option value="${folderName.replace(/"/g, '&quot;')}">${folderName} (${folderCounts[folderName]} features)</option>`;
+            });
+            folderSelect.innerHTML = optHtml;
+            if (Object.keys(folderCounts).includes(currentFolder) || currentFolder === 'ALL') {
+                folderSelect.value = currentFolder;
+            } else {
+                folderSelect.value = 'ALL';
+            }
+        }
 
         const keysSet = new Set();
         features.forEach(f => {
@@ -1306,9 +1475,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const keys = Array.from(keysSet);
 
+        // Header Row
         let trHead = `<tr>
             <th style="width:40px; text-align:center;"><input type="checkbox" id="selectAllCheck" ${selectedFeatureIndices.size === features.length ? 'checked' : ''}></th>
             <th>Row #</th>
+            <th>Directory / Folder</th>
             <th>Geometry</th>
             <th>Latitude</th>
             <th>Longitude</th>
@@ -1316,119 +1487,196 @@ document.addEventListener('DOMContentLoaded', () => {
             <th>Elevation (ft)</th>
             <th>Legal Land Description (DLS)</th>`;
         keys.forEach(k => {
-            if (!['Latitude', 'Longitude', 'Elevation_m', 'Elevation_ft', 'Legal_Land_Desc'].includes(k)) {
+            if (!['Latitude', 'Longitude', 'Elevation_m', 'Elevation_ft', 'Legal_Land_Desc', 'Folder', 'folder', 'Directory', 'dir', 'Layer', 'layer'].includes(k)) {
                 trHead += `<th>${k}</th>`;
             }
         });
         trHead += '</tr>';
         thead.innerHTML = trHead;
 
-        features.forEach((f, idx) => {
-            const isChecked = selectedFeatureIndices.has(idx);
+        // Function to render filtered rows
+        const renderFilteredGridRows = () => {
+            const selectedFolder = folderSelect ? folderSelect.value : 'ALL';
+            const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
-            let lat = '', lon = '', eleM = '', eleFt = '', lld = '';
-            if (f.geometry && f.geometry.coordinates) {
-                if (f.geometry.type === 'Point') {
-                    lon = f.geometry.coordinates[0];
-                    lat = f.geometry.coordinates[1];
-                    if (f.geometry.coordinates.length > 2) eleM = f.geometry.coordinates[2];
-                } else if (f.geometry.type === 'LineString' || f.geometry.type === 'MultiPoint') {
-                    lon = f.geometry.coordinates[0][0];
-                    lat = f.geometry.coordinates[0][1];
-                    if (f.geometry.coordinates[0].length > 2) eleM = f.geometry.coordinates[0][2];
+            const rows = [];
+            let visibleCount = 0;
+
+            features.forEach((f, idx) => {
+                const folder = getFeatureFolder(f);
+                if (selectedFolder !== 'ALL' && folder !== selectedFolder) return;
+
+                if (searchTerm) {
+                    const rowText = JSON.stringify(f.properties || {}).toLowerCase() + ' ' + (f.geometry?.type || '').toLowerCase();
+                    if (!rowText.includes(searchTerm)) return;
                 }
-            }
 
-            if (!eleM && f.properties) {
-                eleM = f.properties.Elevation_m || f.properties.elevation || f.properties.ele || f.properties.Z || f.properties.Altitude || '';
-            }
+                visibleCount++;
+                const isChecked = selectedFeatureIndices.has(idx);
 
-            if (eleM !== '' && !isNaN(parseFloat(eleM))) {
-                eleFt = (parseFloat(eleM) * 3.28084).toFixed(2);
-            }
-
-            if (lat && lon && !isNaN(lat) && !isNaN(lon)) {
-                lld = f.properties?.Legal_Land_Desc || gisConverter.latLonToDLS(parseFloat(lat), parseFloat(lon));
-                if (f.properties) f.properties.Legal_Land_Desc = lld;
-            }
-
-            let tr = `<tr>
-                <td style="text-align:center;"><input type="checkbox" class="row-check" data-idx="${idx}" ${isChecked ? 'checked' : ''}></td>
-                <td>${idx + 1}</td>
-                <td><span style="font-weight:600; color:var(--accent-blue);">${f.geometry?.type || 'Vector'}</span></td>
-                <td><input type="text" class="spreadsheet-cell-input" data-idx="${idx}" data-field="lat" value="${lat}"></td>
-                <td><input type="text" class="spreadsheet-cell-input" data-idx="${idx}" data-field="lon" value="${lon}"></td>
-                <td><input type="text" class="spreadsheet-cell-input" data-idx="${idx}" data-field="eleM" value="${eleM}"></td>
-                <td><input type="text" class="spreadsheet-cell-input" data-idx="${idx}" data-field="eleFt" value="${eleFt}"></td>
-                <td><input type="text" class="spreadsheet-cell-input" data-idx="${idx}" data-key="Legal_Land_Desc" value="${lld}"></td>`;
-            
-            keys.forEach(k => {
-                if (!['Latitude', 'Longitude', 'Elevation_m', 'Elevation_ft', 'Legal_Land_Desc'].includes(k)) {
-                    const val = f.properties ? (f.properties[k] ?? '') : '';
-                    tr += `<td><input type="text" class="spreadsheet-cell-input" data-idx="${idx}" data-key="${k}" value="${String(val).replace(/"/g, '&quot;')}"></td>`;
-                }
-            });
-            tr += '</tr>';
-            tbody.innerHTML += tr;
-        });
-
-        updateExportSelectedButtonText();
-
-        document.getElementById('selectAllCheck')?.addEventListener('change', (e) => {
-            const checked = e.target.checked;
-            document.querySelectorAll('.row-check').forEach(chk => {
-                chk.checked = checked;
-                const idx = parseInt(chk.getAttribute('data-idx'));
-                if (checked) selectedFeatureIndices.add(idx);
-                else selectedFeatureIndices.delete(idx);
-            });
-            updateExportSelectedButtonText();
-        });
-
-        document.querySelectorAll('.row-check').forEach(chk => {
-            chk.addEventListener('change', (e) => {
-                const idx = parseInt(e.target.getAttribute('data-idx'));
-                if (e.target.checked) selectedFeatureIndices.add(idx);
-                else selectedFeatureIndices.delete(idx);
-                updateExportSelectedButtonText();
-            });
-        });
-
-        document.querySelectorAll('.spreadsheet-cell-input').forEach(input => {
-            input.addEventListener('change', (e) => {
-                const idx = parseInt(e.target.getAttribute('data-idx'));
-                const field = e.target.getAttribute('data-field');
-                const key = e.target.getAttribute('data-key');
-                const newVal = e.target.value;
-
-                if (features[idx]) {
-                    if (field === 'lat' || field === 'lon' || field === 'eleM') {
-                        let curLon = features[idx].geometry.coordinates[0];
-                        let curLat = features[idx].geometry.coordinates[1];
-                        let curEle = features[idx].geometry.coordinates[2] || 0;
-
-                        if (field === 'lat') curLat = parseFloat(newVal);
-                        if (field === 'lon') curLon = parseFloat(newVal);
-                        if (field === 'eleM') curEle = parseFloat(newVal);
-
-                        if (!isNaN(curLat) && !isNaN(curLon)) {
-                            features[idx].geometry.coordinates = !isNaN(curEle) && curEle !== 0 ? [curLon, curLat, curEle] : [curLon, curLat];
-                            const newLld = gisConverter.latLonToDLS(curLat, curLon);
-                            if (!features[idx].properties) features[idx].properties = {};
-                            features[idx].properties.Legal_Land_Desc = newLld;
-                        }
-                    } else if (key) {
-                        if (!features[idx].properties) features[idx].properties = {};
-                        features[idx].properties[key] = newVal;
+                let lat = '', lon = '', eleM = '', eleFt = '', lld = '';
+                if (f.geometry && f.geometry.coordinates) {
+                    if (f.geometry.type === 'Point') {
+                        lon = f.geometry.coordinates[0];
+                        lat = f.geometry.coordinates[1];
+                        if (f.geometry.coordinates.length > 2) eleM = f.geometry.coordinates[2];
+                    } else if (f.geometry.type === 'LineString' || f.geometry.type === 'MultiPoint') {
+                        lon = f.geometry.coordinates[0][0];
+                        lat = f.geometry.coordinates[0][1];
+                        if (f.geometry.coordinates[0].length > 2) eleM = f.geometry.coordinates[0][2];
                     }
-                    renderGeoJSONOnMap(currentGeoJSON);
-                    renderAttributeTable(currentGeoJSON);
                 }
+
+                if (f.properties) {
+                    if ((lat === '' || lat === null) && f.properties.Latitude !== undefined) lat = f.properties.Latitude;
+                    if ((lon === '' || lon === null) && f.properties.Longitude !== undefined) lon = f.properties.Longitude;
+                }
+
+                if (!eleM && f.properties) {
+                    eleM = f.properties.Elevation_m || f.properties.elevation || f.properties.ele || f.properties.Z || f.properties.Altitude || '';
+                }
+
+                if (eleM !== '' && !isNaN(parseFloat(eleM))) {
+                    eleFt = (parseFloat(eleM) * 3.28084).toFixed(2);
+                }
+
+                if (lat !== '' && lon !== '' && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lon))) {
+                    const parsedLat = parseFloat(lat);
+                    const parsedLon = parseFloat(lon);
+                    lld = f.properties?.Legal_Land_Desc || gisConverter.latLonToDLS(parsedLat, parsedLon);
+                    if (f.properties) f.properties.Legal_Land_Desc = lld;
+                }
+
+                let tr = `<tr>
+                    <td style="text-align:center;"><input type="checkbox" class="row-check" data-idx="${idx}" ${isChecked ? 'checked' : ''}></td>
+                    <td>${idx + 1}</td>
+                    <td><span style="font-size:0.75rem; font-weight:600; background:var(--bg-card); color:var(--accent-blue); padding:2px 6px; border-radius:4px; border:1px solid var(--border-color);">${folder}</span></td>
+                    <td><span style="font-weight:600; color:var(--accent-blue);">${f.geometry?.type || 'Vector'}</span></td>
+                    <td><input type="text" class="spreadsheet-cell-input latlon-input" data-idx="${idx}" data-field="lat" value="${lat}"></td>
+                    <td><input type="text" class="spreadsheet-cell-input latlon-input" data-idx="${idx}" data-field="lon" value="${lon}"></td>
+                    <td><input type="text" class="spreadsheet-cell-input" data-idx="${idx}" data-field="eleM" value="${eleM}"></td>
+                    <td><input type="text" class="spreadsheet-cell-input" data-idx="${idx}" data-field="eleFt" value="${eleFt}"></td>
+                    <td><input type="text" class="spreadsheet-cell-input lld-input" data-idx="${idx}" data-key="Legal_Land_Desc" value="${lld}"></td>`;
+                
+                keys.forEach(k => {
+                    if (!['Latitude', 'Longitude', 'Elevation_m', 'Elevation_ft', 'Legal_Land_Desc', 'Folder', 'folder', 'Directory', 'dir', 'Layer', 'layer'].includes(k)) {
+                        const val = f.properties ? (f.properties[k] ?? '') : '';
+                        tr += `<td><input type="text" class="spreadsheet-cell-input" data-idx="${idx}" data-key="${k}" value="${String(val).replace(/"/g, '&quot;')}"></td>`;
+                    }
+                });
+                tr += '</tr>';
+                rows.push(tr);
             });
-        });
+
+            tbody.innerHTML = rows.join('');
+            if (rowBadge) rowBadge.textContent = `${visibleCount} of ${features.length} rows`;
+            updateExportSelectedButtonText();
+
+            // Re-attach handlers for checkboxes & cell inputs
+            tbody.querySelectorAll('.row-check').forEach(chk => {
+                chk.addEventListener('change', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-idx'));
+                    if (e.target.checked) selectedFeatureIndices.add(idx);
+                    else selectedFeatureIndices.delete(idx);
+                    updateExportSelectedButtonText();
+                });
+            });
+
+            tbody.querySelectorAll('.spreadsheet-cell-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-idx'));
+                    const field = e.target.getAttribute('data-field');
+                    const key = e.target.getAttribute('data-key');
+                    const newVal = e.target.value;
+
+                    if (features[idx]) {
+                        if (field === 'lat' || field === 'lon' || field === 'eleM') {
+                            let curLon = features[idx].geometry?.coordinates[0] || 0;
+                            let curLat = features[idx].geometry?.coordinates[1] || 0;
+                            let curEle = features[idx].geometry?.coordinates[2] || 0;
+
+                            if (field === 'lat') curLat = parseFloat(newVal);
+                            if (field === 'lon') curLon = parseFloat(newVal);
+                            if (field === 'eleM') curEle = parseFloat(newVal);
+
+                            if (!isNaN(curLat) && !isNaN(curLon)) {
+                                features[idx].geometry.coordinates = !isNaN(curEle) && curEle !== 0 ? [curLon, curLat, curEle] : [curLon, curLat];
+                                const newLld = gisConverter.latLonToDLS(curLat, curLon);
+                                if (!features[idx].properties) features[idx].properties = {};
+                                features[idx].properties.Legal_Land_Desc = newLld;
+                            }
+                        } else if (key) {
+                            if (!features[idx].properties) features[idx].properties = {};
+                            features[idx].properties[key] = newVal;
+                        }
+                        renderGeoJSONOnMap(currentGeoJSON);
+                        renderAttributeTable(currentGeoJSON);
+                    }
+                });
+            });
+        };
+
+        renderFilteredGridRows();
+
+        // Directory Filter event listener
+        folderSelect?.replaceWith(folderSelect.cloneNode(true));
+        const newFolderSelect = document.getElementById('spreadsheetFolderFilter');
+        newFolderSelect?.addEventListener('change', renderFilteredGridRows);
+
+        // Search Input event listener
+        searchInput?.replaceWith(searchInput.cloneNode(true));
+        const newSearchInput = document.getElementById('spreadsheetSearchInput');
+        newSearchInput?.addEventListener('input', renderFilteredGridRows);
+
+        // Header Select All Checkbox
+        const selectAllCheck = document.getElementById('selectAllCheck');
+        if (selectAllCheck) {
+            selectAllCheck.onchange = (e) => {
+                const checked = e.target.checked;
+                tbody.querySelectorAll('.row-check').forEach(chk => {
+                    chk.checked = checked;
+                    const idx = parseInt(chk.getAttribute('data-idx'));
+                    if (checked) selectedFeatureIndices.add(idx);
+                    else selectedFeatureIndices.delete(idx);
+                });
+                updateExportSelectedButtonText();
+            };
+        }
+
+        // Batch Select All in Directory
+        const btnSelectFolderRows = document.getElementById('btnSelectFolderRows');
+        if (btnSelectFolderRows) {
+            btnSelectFolderRows.onclick = () => {
+                const selectedFolder = newFolderSelect ? newFolderSelect.value : 'ALL';
+                features.forEach((f, idx) => {
+                    const folder = getFeatureFolder(f);
+                    if (selectedFolder === 'ALL' || folder === selectedFolder) {
+                        selectedFeatureIndices.add(idx);
+                    }
+                });
+                renderFilteredGridRows();
+                showToast(`Selected all features in ${selectedFolder === 'ALL' ? 'all directories' : `'${selectedFolder}'`}`);
+            };
+        }
+
+        // Batch Deselect All in Directory
+        const btnDeselectFolderRows = document.getElementById('btnDeselectFolderRows');
+        if (btnDeselectFolderRows) {
+            btnDeselectFolderRows.onclick = () => {
+                const selectedFolder = newFolderSelect ? newFolderSelect.value : 'ALL';
+                features.forEach((f, idx) => {
+                    const folder = getFeatureFolder(f);
+                    if (selectedFolder === 'ALL' || folder === selectedFolder) {
+                        selectedFeatureIndices.delete(idx);
+                    }
+                });
+                renderFilteredGridRows();
+                showToast(`Deselected all features in ${selectedFolder === 'ALL' ? 'all directories' : `'${selectedFolder}'`}`);
+            };
+        }
 
         document.getElementById('spreadsheetTitle').textContent = `Editable Spreadsheet Grid - ${document.getElementById('drawerDatasetTitle').textContent}`;
-        document.getElementById('spreadsheetSubtitle').textContent = `Configure properties, edit cells, or export selected features with elevations & Legal Land Descriptions (${selectedFeatureIndices.size} selected)`;
+        document.getElementById('spreadsheetSubtitle').textContent = `Configure properties, edit cells, or export selected features by directory/folder with elevations & Legal Land Descriptions`;
         openModal(spreadsheetModal);
     }
 
@@ -1589,7 +1837,7 @@ document.addEventListener('DOMContentLoaded', () => {
             div.addEventListener('click', () => {
                 document.querySelectorAll('.dataset-card').forEach(c => c.classList.remove('active'));
                 div.classList.add('active');
-                processAndDisplayRealDataset(item.filename, item.geojson, item.extractedFiles, item.folderPath);
+                processAndDisplayRealDataset(item.filename, item.geojson, item.extractedFiles, item.folderPath, true);
             });
 
             listContainer.appendChild(div);
@@ -1827,8 +2075,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (Array.isArray(uploadedDatasets) && uploadedDatasets.length > 0) {
             uploadedDatasets.forEach(ds => {
-                if (ds.data && ds.data.features && Array.isArray(ds.data.features)) {
-                    mergedFeatures.push(...ds.data.features);
+                const geo = ds.geojson || ds.data;
+                if (geo && Array.isArray(geo.features)) {
+                    mergedFeatures.push(...geo.features);
                 }
             });
         } else if (currentGeoJSON && currentGeoJSON.features && Array.isArray(currentGeoJSON.features)) {
@@ -1860,15 +2109,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openSpreadsheetGrid() {
         if (!currentGeoJSON) {
-            showToast('Please upload or select a spatial dataset first to open the spreadsheet grid.');
+            showToast('Please upload or select a spatial dataset first to open the Spatial Attribute Inspector.');
             return;
         }
+        openModal(spreadsheetModal);
         renderSpreadsheetGridModal(currentGeoJSON);
     }
 
     document.getElementById('spreadsheetBtn')?.addEventListener('click', openSpreadsheetGrid);
     document.getElementById('railSpreadsheetNav')?.addEventListener('click', openSpreadsheetGrid);
     document.getElementById('openSpreadsheetGridBtn')?.addEventListener('click', openSpreadsheetGrid);
+    document.getElementById('openAttributeInspectorModalBtn')?.addEventListener('click', openSpreadsheetGrid);
 
     // Intelligent Global Search Bar Event Listener (EPSG codes, Locations, Formats, DLS)
     const searchInputEl = document.getElementById('searchInput');
@@ -2119,6 +2370,55 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Checkout connection error.');
         }
     };
+
+    document.getElementById('btnManageBillingFromAccount')?.addEventListener('click', () => {
+        closeModal(authModal);
+        openModal(billingModal);
+        loadUserInvoices();
+    });
+
+    document.getElementById('btnUpgradePlanFromAccount')?.addEventListener('click', () => {
+        closeModal(authModal);
+        openModal(pricingModal);
+    });
+
+    document.getElementById('btnInstantActivatePlan')?.addEventListener('click', async () => {
+        if (!currentUser) {
+            showToast('Please sign in first to subscribe.');
+            closeModal(checkoutModal);
+            openModal(authModal);
+            return;
+        }
+
+        const cycle = isYearlyBilling ? 'yearly' : 'monthly';
+        const plan = currentCheckoutPlan || 'starter';
+
+        try {
+            const res = await fetch('api/auth.php?action=upgrade_plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan: plan, billing_cycle: cycle })
+            });
+            const data = await res.json();
+            if (data.success) {
+                await fetch('api/payment.php?action=process_stripe_payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan: plan, billing_cycle: cycle, card_number: '4242424242424242' })
+                });
+
+                showToast(`Successfully subscribed to ${plan.toUpperCase()} (${cycle}) plan!`);
+                closeModal(checkoutModal);
+                await checkAuthStatus();
+                openModal(billingModal);
+                loadUserInvoices();
+            } else {
+                showToast(data.message || 'Failed to update subscription.');
+            }
+        } catch(e) {
+            showToast('Error processing subscription payment.');
+        }
+    });
 
     // Legal & Support Ticket Modals
     const tosModal = document.getElementById('tosModal');

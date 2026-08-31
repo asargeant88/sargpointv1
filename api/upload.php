@@ -5,9 +5,12 @@ header('Content-Type: application/json');
 try {
     require_once __DIR__ . '/../config.php';
     require_once __DIR__ . '/../includes/auth.php';
+    require_once __DIR__ . '/../includes/usage.php';
 
     $user = getCurrentUser();
-    $usage = getUsageStats($user['id']);
+    $userId = $user ? $user['id'] : 0;
+    $userPlan = $user ? $user['plan'] : 'free';
+    $usage = getUserUsageMetrics($userId, $userPlan);
 
     // Quota Check
     if ($usage['max_files'] !== -1 && $usage['used_files'] >= $usage['max_files']) {
@@ -31,7 +34,8 @@ try {
 
     $dsId = time() . '_' . uniqid();
     $cleanDirName = preg_replace('/[^a-zA-Z0-9_-]/', '_', pathinfo($fileName, PATHINFO_FILENAME));
-    $datasetDir = UPLOAD_DIR . '/ds_' . $dsId . '/' . $cleanDirName;
+    $uploadBaseDir = defined('UPLOAD_DIR') ? UPLOAD_DIR : (__DIR__ . '/../uploads');
+    $datasetDir = $uploadBaseDir . '/ds_' . $dsId . '/' . $cleanDirName;
 
     if (!is_dir($datasetDir)) {
         mkdir($datasetDir, 0777, true);
@@ -116,19 +120,20 @@ try {
     }
 
     // Record dataset upload in database
-    $db = getDB();
-    $stmt = $db->prepare("INSERT INTO user_files (user_id, file_name, file_size_mb, source_format, target_format, source_crs, target_crs) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $db = getDBConnection();
+    $stmt = $db->prepare("INSERT INTO usage_logs (user_id, file_name, file_size_mb, source_format, target_format, source_crs, target_crs) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $fileSizeMb = round($fileSize / (1024 * 1024), 3);
     $stmt->execute([
-        $user['id'],
+        $userId,
         $fileName,
-        round($fileSize / (1024 * 1024), 3),
+        $fileSizeMb > 0 ? $fileSizeMb : 0.001,
         $fileExtension,
         'geojson',
         'EPSG:4326',
         'EPSG:4326'
     ]);
 
-    $updatedUsage = getUsageStats($user['id']);
+    $updatedUsage = getUserUsageMetrics($userId, $userPlan);
 
     echo json_encode([
         'success' => true,
@@ -148,3 +153,4 @@ try {
         'error_log' => $e->getMessage()
     ]);
 }
+?>
